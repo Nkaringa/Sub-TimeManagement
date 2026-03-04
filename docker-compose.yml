@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: subway-postgres
+    environment:
+      POSTGRES_USER: jpops
+      POSTGRES_PASSWORD: superpass
+      POSTGRES_DB: time_clock
+    ports:
+      - "5432:5432"
+    volumes:
+      - subway_pgdata:/var/lib/postgresql/data
+
+volumes:
+  subway_pgdata:

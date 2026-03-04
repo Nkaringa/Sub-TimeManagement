@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+/* =========================
+   Subway (Fast-Food) Theme
+   ========================= */
+:root {
+  --subway-green: #008c15;
+  --subway-yellow: #ffc600;
+  --subway-yellow-light: #ffd740;
+
+  /* App background + text */
+  --bg: #f0f7f0;
+  --text: #1a2e1a;
+
+  /* Keep these mapped so existing Tailwind theme vars still work */
+  --background: var(--bg);
+  --foreground: var(--text);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Immersive Subway-branded background */
+  background-image:
+    /* Top-left bright green glow */
+    radial-gradient(
+      ellipse 700px 500px at 10% 20%,
+      rgba(0, 140, 21, 0.5),
+      transparent 70%
+    ),
+    /* Center yellow warm glow */
+      radial-gradient(
+        ellipse 600px 400px at 50% 50%,
+        rgba(255, 198, 0, 0.12),
+        transparent 70%
+      ),
+    /* Bottom-right green glow */
+      radial-gradient(
+        ellipse 500px 500px at 85% 80%,
+        rgba(0, 140, 21, 0.35),
+        transparent 70%
+      ),
+    /* Diagonal stripe texture (subtle) */
+      repeating-linear-gradient(
+        135deg,
+        transparent,
+        transparent 40px,
+        rgba(255, 255, 255, 0.015) 40px,
+        rgba(255, 255, 255, 0.015) 80px
+      ),
+    /* Base gradient */
+      linear-gradient(160deg, #007a12 0%, #005a0e 40%, #004a0b 100%);
+}
+
