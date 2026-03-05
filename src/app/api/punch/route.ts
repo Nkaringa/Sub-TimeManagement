@@ -55,6 +55,27 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: false, message: "User not found/inactive" }, { status: 404 });
     }
 
+    // --- Device verification ---
+    const deviceToken = String(body?.deviceToken ?? "").trim();
+    if (!deviceToken) {
+        return NextResponse.json(
+            { ok: false, message: "This device is not registered. Contact your manager." },
+            { status: 403 }
+        );
+    }
+
+    const device = await prisma.registeredDevice.findUnique({
+        where: { token: deviceToken },
+        select: { storeId: true, isActive: true },
+    });
+
+    if (!device || !device.isActive || device.storeId !== store.id) {
+        return NextResponse.json(
+            { ok: false, message: "This device is not registered for your store." },
+            { status: 403 }
+        );
+    }
+
     // Prevent duplicate IN/OUT spam
     const lastPunch = await prisma.timePunch.findFirst({
         where: { userId: user.id },
