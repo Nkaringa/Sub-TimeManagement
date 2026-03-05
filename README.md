@@ -17,7 +17,6 @@ A full-stack employee time-clock and store management application built for mult
 - Clock in / clock out with real-time shift timer
 - View daily, weekly, and bi-weekly hours breakdown
 - Store status awareness (cannot clock in when store is closed)
-- Device-restricted punching (can only clock in/out from registered store tablets)
 
 ### Manager
 - Store overview dashboard with live employee status
@@ -26,7 +25,6 @@ A full-stack employee time-clock and store management application built for mult
 - Edit employee details, deactivate accounts (soft delete)
 - PIN verification for sensitive data access (SSN)
 - Time reports and payroll tracking
-- Register and manage authorized store devices for clock in/out
 
 ### Super Admin
 - System-wide overview across all stores
@@ -52,11 +50,10 @@ src/
 │   │   └── dashboard/
 │   ├── api/                 # API routes
 │   │   ├── auth/            # login, logout, register, me
-│   │   ├── devices/         # Device registration, list, revoke
 │   │   ├── employee/        # status, hours, payments
 │   │   ├── manager/         # overview, employeeinfo, reports, verify-pin
 │   │   ├── superadmin/      # overview, login, impersonate, restore
-│   │   ├── punch/           # Clock in/out (device-verified)
+│   │   ├── punch/           # Clock in/out
 │   │   └── stores/          # Store CRUD
 │   ├── layout.tsx
 │   ├── page.tsx
@@ -79,7 +76,6 @@ prisma/
 | **TimePunch** | Clock in/out records with timestamps |
 | **SuperAdmin** | System administrators (separate from store users) |
 | **PaymentLog** | Payment tracking records |
-| **RegisteredDevice** | Authorized store tablets for clock in/out |
 
 ## Getting Started
 

@@ -124,14 +124,6 @@ export default function EmployeeDashboardPage() {
         return () => clearInterval(t);
     }, []);
 
-    // Device registration token (stored in localStorage by manager)
-    const [deviceToken, setDeviceToken] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (typeof window === "undefined") return;
-        setDeviceToken(localStorage.getItem("deviceToken"));
-    }, []);
-
     const [loadingPunch, setLoadingPunch] = useState(false);
     const [pageError, setPageError] = useState<string | null>(null);
 
@@ -224,7 +216,7 @@ export default function EmployeeDashboardPage() {
             const res = await fetch("/api/punch", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ type, deviceToken }),
+                body: JSON.stringify({ type }),
             });
 
             const data = await res.json().catch(() => null);
@@ -272,8 +264,8 @@ export default function EmployeeDashboardPage() {
         return workedTodaySecondsBase + Math.max(0, delta);
     }, [now, status, workedTodaySecondsBase, workedTodayAsOfMs]);
 
-    const clockInDisabled = loadingPunch || status === "IN" || !storeIsOpen || !deviceToken;
-    const clockOutDisabled = loadingPunch || status === "OUT" || !deviceToken;
+    const clockInDisabled = loadingPunch || status === "IN" || !storeIsOpen;
+    const clockOutDisabled = loadingPunch || status === "OUT";
 
     return (
         <main className="min-h-screen px-5 py-10">
@@ -368,12 +360,6 @@ export default function EmployeeDashboardPage() {
                             </div>
                         )}
 
-                        {!deviceToken && (
-                            <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-semibold text-orange-900">
-                                This device is not registered for clocking in/out. Please use the store tablet.
-                            </div>
-                        )}
-
                         {pageError && (
                             <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
                                 {pageError}
@@ -410,7 +396,7 @@ export default function EmployeeDashboardPage() {
                                     className="rounded-2xl bg-[color:var(--subway-green)] py-3.5 font-extrabold tracking-widest text-white text-sm uppercase
                     shadow-[0_10px_26px_rgba(0,140,21,0.18)] hover:brightness-110 active:scale-[0.99] transition
                     disabled:opacity-45 disabled:shadow-none disabled:hover:brightness-100"
-                                    title={!deviceToken ? "Device not registered" : !storeIsOpen ? "Store is closed" : "Clock in"}
+                                    title={!storeIsOpen ? "Store is closed" : "Clock in"}
                                 >
                                     {loadingPunch ? "..." : "Clock In"}
                                 </button>
