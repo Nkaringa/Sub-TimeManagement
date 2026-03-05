@@ -8,6 +8,13 @@ type ActiveRow = {
     since: string; // ISO
 };
 
+type DeviceRow = {
+    id: string;
+    name: string;
+    registeredBy: string;
+    createdAt: string; // ISO
+};
+
 type OverviewResponse = {
     ok: boolean;
     message?: string;
@@ -70,6 +77,90 @@ export default function ManagerDashboardPage() {
         }
     }
 
+    // ---------- Device Registration ----------
+    const [devices, setDevices] = useState<DeviceRow[]>([]);
+    const [thisDeviceRegistered, setThisDeviceRegistered] = useState(false);
+    const [registerModalOpen, setRegisterModalOpen] = useState(false);
+    const [deviceName, setDeviceName] = useState("");
+    const [registering, setRegistering] = useState(false);
+    const [revoking, setRevoking] = useState<string | null>(null);
+
+    async function loadDevices() {
+        try {
+            const res = await fetch("/api/devices", { cache: "no-store", credentials: "include" });
+            const data = await res.json().catch(() => null);
+            if (res.ok && data?.ok && Array.isArray(data.devices)) {
+                setDevices(data.devices);
+            }
+        } catch { /* silent */ }
+
+        if (typeof window !== "undefined") {
+            const localToken = localStorage.getItem("deviceToken");
+            setThisDeviceRegistered(!!localToken);
+        }
+    }
+
+    async function registerDevice() {
+        const trimmed = deviceName.trim();
+        if (!trimmed) return;
+
+        setRegistering(true);
+        setErr(null);
+
+        try {
+            const res = await fetch("/api/devices/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ name: trimmed }),
+            });
+
+            const data = await res.json().catch(() => null);
+
+            if (!res.ok || !data?.ok) {
+                setErr(data?.message ?? "Failed to register device.");
+                return;
+            }
+
+            localStorage.setItem("deviceToken", data.device.token);
+            setThisDeviceRegistered(true);
+            setDeviceName("");
+            setRegisterModalOpen(false);
+            await loadDevices();
+        } catch {
+            setErr("Network error while registering device.");
+        } finally {
+            setRegistering(false);
+        }
+    }
+
+    async function revokeDevice(deviceId: string) {
+        setRevoking(deviceId);
+        setErr(null);
+
+        try {
+            const res = await fetch("/api/devices", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ deviceId }),
+            });
+
+            const data = await res.json().catch(() => null);
+
+            if (!res.ok || !data?.ok) {
+                setErr(data?.message ?? "Failed to revoke device.");
+                return;
+            }
+
+            await loadDevices();
+        } catch {
+            setErr("Network error while revoking device.");
+        } finally {
+            setRevoking(null);
+        }
+    }
+
     async function loadOverview() {
         setErr(null);
 
@@ -112,7 +203,7 @@ export default function ManagerDashboardPage() {
 
         async function firstLoad() {
             setLoading(true);
-            await loadOverview();
+            await Promise.all([loadOverview(), loadDevices()]);
             if (!mounted) return;
             setLoading(false);
         }
@@ -342,6 +433,60 @@ export default function ManagerDashboardPage() {
 
                             <p className="mt-3 text-xs text-gray-400">This list is live from the database (auto-refreshes).</p>
                         </div>
+
+                        {/* Device Management */}
+                        <div className="mt-5">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-sm font-extrabold tracking-widest text-gray-700 uppercase">Registered Devices</h2>
+                                <span className="text-xs font-bold text-gray-400">{devices.length} device{devices.length !== 1 ? "s" : ""}</span>
+                            </div>
+
+                            <div className="mt-2 overflow-hidden rounded-xl border border-gray-200">
+                                {devices.length === 0 ? (
+                                    <div className="p-3 text-sm text-gray-500">No devices registered yet.</div>
+                                ) : (
+                                    <ul className="divide-y divide-gray-200">
+                                        {devices.map((d) => (
+                                            <li key={d.id} className="flex items-center justify-between px-4 py-3">
+                                                <div>
+                                                    <div className="text-sm font-bold text-gray-900">{d.name}</div>
+                                                    <div className="mt-0.5 text-xs text-gray-500">
+                                                        By {d.registeredBy} &middot; {new Date(d.createdAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
+                                                    </div>
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => revokeDevice(d.id)}
+                                                    disabled={revoking === d.id}
+                                                    className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-[10px] font-extrabold tracking-widest uppercase text-red-600
+                                                        hover:bg-red-50 active:scale-[0.99] transition disabled:opacity-50"
+                                                >
+                                                    {revoking === d.id ? "..." : "Revoke"}
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+
+                            {!thisDeviceRegistered && (
+                                <button
+                                    type="button"
+                                    onClick={() => setRegisterModalOpen(true)}
+                                    className="mt-3 w-full rounded-xl bg-[color:var(--subway-green)] px-5 py-3 text-white font-extrabold tracking-widest uppercase text-sm
+                                        shadow-[0_8px_18px_rgba(0,140,21,0.18)] hover:brightness-110 active:scale-[0.99] transition"
+                                >
+                                    Register This Device
+                                </button>
+                            )}
+
+                            {thisDeviceRegistered && (
+                                <p className="mt-3 text-xs text-[color:var(--subway-green)] font-semibold">
+                                    This device is registered for clock in/out.
+                                </p>
+                            )}
+                        </div>
                     </div>
 
                     {/* Bottom stripe */}
@@ -426,6 +571,87 @@ export default function ManagerDashboardPage() {
                                     disabled={toggling}
                                 >
                                     Confirm
+                                </button>
+                            </div>
+                        </div>
+
+                        <div
+                            className="h-2 w-full"
+                            style={{
+                                background: "linear-gradient(90deg, var(--subway-green) 0%, var(--subway-green) 50%, var(--subway-yellow) 50%, var(--subway-yellow) 100%)",
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Register Device Modal */}
+            {registerModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-5" role="dialog" aria-modal="true">
+                    <button
+                        type="button"
+                        className="absolute inset-0 bg-black/50"
+                        onClick={() => setRegisterModalOpen(false)}
+                        aria-label="Close register device"
+                    />
+
+                    <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-[0_30px_90px_rgba(0,0,0,0.45)]">
+                        <div className="relative bg-[color:var(--subway-green)] px-6 pt-6 pb-5 overflow-hidden">
+                            <div
+                                className="absolute -right-6 -top-4 h-[200%] w-20 rotate-[20deg] opacity-20"
+                                style={{ background: "linear-gradient(180deg, var(--subway-yellow), transparent)" }}
+                            />
+
+                            <div className="text-[11px] font-extrabold tracking-widest text-white/80 uppercase">
+                                Device setup
+                            </div>
+
+                            <div className="mt-1 text-xl font-black tracking-widest text-[color:var(--subway-yellow)] uppercase">
+                                Register This Device
+                            </div>
+
+                            <div
+                                className="absolute inset-x-0 bottom-0 h-1.5"
+                                style={{
+                                    background: "linear-gradient(90deg, var(--subway-yellow), var(--subway-yellow-light), var(--subway-yellow))",
+                                }}
+                            />
+                        </div>
+
+                        <div className="px-6 py-6">
+                            <p className="text-sm text-gray-700 font-medium">
+                                Give this device a name so you can identify it later.
+                            </p>
+
+                            <input
+                                type="text"
+                                value={deviceName}
+                                onChange={(e) => setDeviceName(e.target.value)}
+                                placeholder="e.g. Front Counter Tablet"
+                                className="mt-3 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-900 placeholder:text-gray-400
+                                    focus:border-[color:var(--subway-green)] focus:ring-1 focus:ring-[color:var(--subway-green)] outline-none transition"
+                                autoFocus
+                                onKeyDown={(e) => { if (e.key === "Enter") registerDevice(); }}
+                            />
+
+                            <div className="mt-5 grid grid-cols-2 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => { setRegisterModalOpen(false); setDeviceName(""); }}
+                                    className="rounded-xl border border-gray-200 bg-white py-3 text-sm font-extrabold tracking-widest uppercase text-gray-700 hover:border-gray-300 active:scale-[0.99] transition"
+                                    disabled={registering}
+                                >
+                                    Cancel
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={registerDevice}
+                                    disabled={registering || !deviceName.trim()}
+                                    className="rounded-xl bg-[color:var(--subway-yellow)] py-3 text-sm font-extrabold tracking-widest uppercase text-[color:var(--subway-green)]
+                                        hover:brightness-105 active:scale-[0.99] transition disabled:opacity-60"
+                                >
+                                    {registering ? "..." : "Register"}
                                 </button>
                             </div>
                         </div>

@@ -23,6 +23,7 @@ model Store {
 
   users     User[]
   punches   TimePunch[]
+  devices   RegisteredDevice[]
 }
 
 model User {
@@ -88,4 +89,19 @@ model PaymentLog {
 
   @@index([storeId, paidAt])
   @@index([userId, paidAt])
+}
+
+model RegisteredDevice {
+  id           String   @id @default(cuid())
+  storeId      String
+  store        Store    @relation(fields: [storeId], references: [id])
+
+  token        String   @unique
+  name         String
+  registeredBy String
+
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@index([storeId])
 }
