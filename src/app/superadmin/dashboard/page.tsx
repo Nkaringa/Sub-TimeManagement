@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Overview = {
@@ -161,6 +161,82 @@ export default function SuperAdminDashboardPage() {
             setAddMsg("Network error. Please try again.");
         } finally {
             setAddLoading(false);
+        }
+    }
+
+    // --- Edit Store ---
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editCode, setEditCode] = useState("");
+    const [editName, setEditName] = useState("");
+    const [editLoading, setEditLoading] = useState(false);
+    const [editMsg, setEditMsg] = useState<string | null>(null);
+
+    function openEditModal(store: StoreOption) {
+        setEditCode(store.code);
+        setEditName(store.name);
+        setEditMsg(null);
+        setEditModalOpen(true);
+    }
+
+    async function onEditStore() {
+        const name = editName.trim();
+        if (!name) { setEditMsg("Store name is required."); return; }
+
+        setEditLoading(true);
+        setEditMsg(null);
+        try {
+            const res = await fetch("/api/stores", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code: editCode, name }),
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok || !data?.ok) {
+                setEditMsg(data?.message ?? "Failed to update store.");
+                return;
+            }
+            setEditModalOpen(false);
+            await Promise.all([loadOverview(), loadStores()]);
+        } catch {
+            setEditMsg("Network error.");
+        } finally {
+            setEditLoading(false);
+        }
+    }
+
+    // --- Remove Store ---
+    const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
+    const [removeCode, setRemoveCode] = useState("");
+    const [removeName, setRemoveName] = useState("");
+    const [removeLoading, setRemoveLoading] = useState(false);
+
+    function openRemoveConfirm(store: StoreOption) {
+        setRemoveCode(store.code);
+        setRemoveName(store.name);
+        setRemoveConfirmOpen(true);
+    }
+
+    async function onRemoveStore() {
+        setRemoveLoading(true);
+        setErr(null);
+        try {
+            const res = await fetch("/api/stores", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code: removeCode }),
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok || !data?.ok) {
+                setErr(data?.message ?? "Failed to remove store.");
+                return;
+            }
+            setRemoveConfirmOpen(false);
+            setSelectedStore("");
+            await Promise.all([loadOverview(), loadStores()]);
+        } catch {
+            setErr("Network error.");
+        } finally {
+            setRemoveLoading(false);
         }
     }
 
@@ -366,6 +442,62 @@ export default function SuperAdminDashboardPage() {
                                 This will open the store's manager dashboard for that location.
                             </p>
                         </div>
+
+                        {/* Manage Stores */}
+                        <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-4">
+                            <div className="flex items-center justify-between">
+                                <div className="text-[11px] font-extrabold tracking-widest text-gray-600 uppercase">
+                                    Manage Stores
+                                </div>
+                                <span className="text-xs font-bold text-gray-400">
+                                    {stores.length} store{stores.length !== 1 ? "s" : ""}
+                                </span>
+                            </div>
+
+                            <div className="mt-3 overflow-hidden rounded-xl border border-gray-200">
+                                {storesLoading ? (
+                                    <div className="p-3 text-sm text-gray-500">Loading stores...</div>
+                                ) : stores.length === 0 ? (
+                                    <div className="p-3 text-sm text-gray-500">No stores found.</div>
+                                ) : (
+                                    <ul className="divide-y divide-gray-200">
+                                        {stores.map((s) => (
+                                            <li key={s.code} className="flex items-center justify-between px-4 py-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div>
+                                                        <div className="text-sm font-bold text-gray-900">
+                                                            #{s.code} &middot; {s.name}
+                                                        </div>
+                                                        <div className="mt-0.5 text-xs text-gray-500">
+                                                            {s.isOpen ? "Open" : "Closed"}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openEditModal(s)}
+                                                        className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[10px] font-extrabold tracking-widest uppercase text-gray-700
+                                                            hover:border-gray-300 hover:bg-gray-50 active:scale-[0.99] transition"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openRemoveConfirm(s)}
+                                                        className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-[10px] font-extrabold tracking-widest uppercase text-red-600
+                                                            hover:bg-red-50 active:scale-[0.99] transition"
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        </div>
                     </div>
 
                     {/* Bottom stripe */}
@@ -378,6 +510,155 @@ export default function SuperAdminDashboardPage() {
                     />
                 </div>
             </div>
+
+            {/* Edit Store Modal */}
+            {editModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-5" role="dialog" aria-modal="true">
+                    <button
+                        type="button"
+                        className="absolute inset-0 bg-black/50"
+                        onClick={() => setEditModalOpen(false)}
+                        aria-label="Close edit store"
+                    />
+
+                    <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-[0_30px_90px_rgba(0,0,0,0.45)]">
+                        <div className="relative bg-[color:var(--subway-green)] px-6 pt-6 pb-5 overflow-hidden">
+                            <div
+                                className="absolute -right-6 -top-4 h-[200%] w-20 rotate-[20deg] opacity-20"
+                                style={{ background: "linear-gradient(180deg, var(--subway-yellow), transparent)" }}
+                            />
+                            <div className="text-[11px] font-extrabold tracking-widest text-white/80 uppercase">
+                                Edit store
+                            </div>
+                            <div className="mt-1 text-xl font-black tracking-widest text-[color:var(--subway-yellow)] uppercase">
+                                Store #{editCode}
+                            </div>
+                            <div
+                                className="absolute inset-x-0 bottom-0 h-1.5"
+                                style={{
+                                    background: "linear-gradient(90deg, var(--subway-yellow), var(--subway-yellow-light), var(--subway-yellow))",
+                                }}
+                            />
+                        </div>
+
+                        <div className="px-6 py-6">
+                            <label className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">
+                                Store Name
+                            </label>
+                            <input
+                                type="text"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                className="mt-1.5 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-900 placeholder:text-gray-400
+                                    focus:border-[color:var(--subway-green)] focus:ring-1 focus:ring-[color:var(--subway-green)] outline-none transition"
+                                autoFocus
+                                onKeyDown={(e) => { if (e.key === "Enter") onEditStore(); }}
+                            />
+
+                            {editMsg && <div className="mt-2 text-sm font-semibold text-red-600">{editMsg}</div>}
+
+                            <div className="mt-5 grid grid-cols-2 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditModalOpen(false)}
+                                    className="rounded-xl border border-gray-200 bg-white py-3 text-sm font-extrabold tracking-widest uppercase text-gray-700 hover:border-gray-300 active:scale-[0.99] transition"
+                                    disabled={editLoading}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={onEditStore}
+                                    disabled={editLoading || !editName.trim()}
+                                    className="rounded-xl bg-[color:var(--subway-yellow)] py-3 text-sm font-extrabold tracking-widest uppercase text-[color:var(--subway-green)]
+                                        hover:brightness-105 active:scale-[0.99] transition disabled:opacity-60"
+                                >
+                                    {editLoading ? "..." : "Save"}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div
+                            className="h-2 w-full"
+                            style={{
+                                background: "linear-gradient(90deg, var(--subway-green) 0%, var(--subway-green) 50%, var(--subway-yellow) 50%, var(--subway-yellow) 100%)",
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Remove Store Confirmation Modal */}
+            {removeConfirmOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-5" role="dialog" aria-modal="true">
+                    <button
+                        type="button"
+                        className="absolute inset-0 bg-black/50"
+                        onClick={() => setRemoveConfirmOpen(false)}
+                        aria-label="Close remove confirmation"
+                    />
+
+                    <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-[0_30px_90px_rgba(0,0,0,0.45)]">
+                        <div className="relative bg-[color:var(--subway-green)] px-6 pt-6 pb-5 overflow-hidden">
+                            <div
+                                className="absolute -right-6 -top-4 h-[200%] w-20 rotate-[20deg] opacity-20"
+                                style={{ background: "linear-gradient(180deg, var(--subway-yellow), transparent)" }}
+                            />
+                            <div className="text-[11px] font-extrabold tracking-widest text-white/80 uppercase">
+                                Confirm removal
+                            </div>
+                            <div className="mt-1 text-xl font-black tracking-widest text-[color:var(--subway-yellow)] uppercase">
+                                Remove Store
+                            </div>
+                            <div
+                                className="absolute inset-x-0 bottom-0 h-1.5"
+                                style={{
+                                    background: "linear-gradient(90deg, var(--subway-yellow), var(--subway-yellow-light), var(--subway-yellow))",
+                                }}
+                            />
+                        </div>
+
+                        <div className="px-6 py-6">
+                            <p className="text-sm text-gray-800 font-semibold">
+                                Are you sure you want to remove Store{" "}
+                                <span className="font-black">#{removeCode}</span> ({removeName})?
+                            </p>
+                            <p className="mt-2 text-xs text-gray-500 font-medium">
+                                This will close the store, clock out all active employees,
+                                deactivate all employee accounts, and revoke all registered devices.
+                                The store will no longer appear in dropdowns or dashboards.
+                            </p>
+
+                            <div className="mt-5 grid grid-cols-2 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setRemoveConfirmOpen(false)}
+                                    className="rounded-xl border border-gray-200 bg-white py-3 text-sm font-extrabold tracking-widest uppercase text-gray-700 hover:border-gray-300 active:scale-[0.99] transition"
+                                    disabled={removeLoading}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={onRemoveStore}
+                                    disabled={removeLoading}
+                                    className="rounded-xl bg-red-600 py-3 text-sm font-extrabold tracking-widest uppercase text-white
+                                        hover:bg-red-700 active:scale-[0.99] transition disabled:opacity-60"
+                                >
+                                    {removeLoading ? "..." : "Remove"}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div
+                            className="h-2 w-full"
+                            style={{
+                                background: "linear-gradient(90deg, var(--subway-green) 0%, var(--subway-green) 50%, var(--subway-yellow) 50%, var(--subway-yellow) 100%)",
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
         </main>
     );
 }

@@ -24,9 +24,9 @@ export async function GET(req: Request) {
     }
 
     const [totalStores, openStores, closedStores] = await Promise.all([
-        prisma.store.count(),
-        prisma.store.count({ where: { isOpen: true } }),
-        prisma.store.count({ where: { isOpen: false } }),
+        prisma.store.count({ where: { isActive: true } }),
+        prisma.store.count({ where: { isActive: true, isOpen: true } }),
+        prisma.store.count({ where: { isActive: true, isOpen: false } }),
     ]);
 
     return NextResponse.json({ ok: true, totalStores, openStores, closedStores }, { status: 200 });
