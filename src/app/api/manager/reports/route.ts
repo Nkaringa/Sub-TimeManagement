@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-
-function getCookie(cookieHeader: string, name: string) {
-  const m = cookieHeader.match(new RegExp(`${name}=([^;]+)`));
-  return m ? decodeURIComponent(m[1]) : null;
-}
 
 function clampDate(d: Date, min: Date, max: Date) {
   const t = d.getTime();
@@ -15,13 +11,11 @@ function sumHoursFromPunches(
   rangeStart: Date,
   rangeEnd: Date,
 ) {
-  // assumes punches already sorted by at asc
   let totalMs = 0;
   let currentIn: Date | null = null;
 
   for (const p of punches) {
     if (p.type === "IN") {
-      // ignore repeated IN while already IN
       if (!currentIn) currentIn = p.at;
     } else if (p.type === "OUT") {
       if (currentIn) {
@@ -33,7 +27,6 @@ function sumHoursFromPunches(
     }
   }
 
-  // If still IN by end of list, cap to rangeEnd
   if (currentIn) {
     const a = clampDate(currentIn, rangeStart, rangeEnd);
     const b = rangeEnd;
@@ -48,28 +41,19 @@ export async function GET(req: Request) {
   const daysParam = Number(url.searchParams.get("days") ?? "7");
   const days = daysParam === 14 ? 14 : 7;
 
-  const cookieHeader = req.headers.get("cookie") ?? "";
-  const session = getCookie(cookieHeader, "session");
-  const role = getCookie(cookieHeader, "role");
-  const storeCode = getCookie(cookieHeader, "storeCode");
+  const jar = await cookies();
+  const session = jar.get("session")?.value ?? "";
+  const role = jar.get("role")?.value ?? "";
+  const storeCode = jar.get("storeCode")?.value ?? "";
 
   if (session !== "logged_in") {
-    return NextResponse.json(
-      { ok: false, message: "Not logged in" },
-      { status: 401 },
-    );
+    return NextResponse.json({ ok: false, message: "Not logged in" }, { status: 401 });
   }
   if (role !== "MANAGER") {
-    return NextResponse.json(
-      { ok: false, message: "Forbidden" },
-      { status: 403 },
-    );
+    return NextResponse.json({ ok: false, message: "Forbidden" }, { status: 403 });
   }
   if (!storeCode) {
-    return NextResponse.json(
-      { ok: false, message: "Missing store context" },
-      { status: 400 },
-    );
+    return NextResponse.json({ ok: false, message: "Missing store context" }, { status: 400 });
   }
 
   const store = await prisma.store.findUnique({
@@ -77,10 +61,7 @@ export async function GET(req: Request) {
     select: { id: true, code: true, name: true },
   });
   if (!store) {
-    return NextResponse.json(
-      { ok: false, message: "Store not found" },
-      { status: 404 },
-    );
+    return NextResponse.json({ ok: false, message: "Store not found" }, { status: 404 });
   }
 
   const now = new Date();
@@ -89,7 +70,6 @@ export async function GET(req: Request) {
   rangeStart.setDate(rangeStart.getDate() - (days - 1));
   rangeStart.setHours(0, 0, 0, 0);
 
-  // Employees in this store
   const employees = await prisma.user.findMany({
     where: { storeId: store.id, role: "EMPLOYEE", isActive: true },
     select: { id: true, employeeId: true, fullName: true, createdAt: true },
@@ -98,7 +78,6 @@ export async function GET(req: Request) {
 
   const employeeIds = employees.map((e) => e.id);
 
-  // All punches in range for these employees
   const punches = await prisma.timePunch.findMany({
     where: {
       storeId: store.id,
@@ -106,14 +85,9 @@ export async function GET(req: Request) {
       at: { gte: rangeStart, lte: rangeEnd },
     },
     orderBy: [{ userId: "asc" }, { at: "asc" }],
-    select: {
-      userId: true,
-      type: true,
-      at: true,
-    },
+    select: { userId: true, type: true, at: true },
   });
 
-  // Group punches by userId
   const byUser = new Map<string, Array<{ type: string; at: Date }>>();
   for (const p of punches) {
     if (!byUser.has(p.userId)) byUser.set(p.userId, []);
@@ -125,10 +99,7 @@ export async function GET(req: Request) {
     const totalHours = sumHoursFromPunches(list, rangeStart, rangeEnd);
 
     const lastPunch = list.length ? list[list.length - 1] : null;
-    const isMissingOut = (() => {
-      if (!lastPunch) return false;
-      return lastPunch.type === "IN"; // last punch in range is IN
-    })();
+    const isMissingOut = lastPunch ? lastPunch.type === "IN" : false;
 
     return {
       userId: e.id,

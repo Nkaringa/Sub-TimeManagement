@@ -1,12 +1,6 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-
-function getCookie(cookieHeader: string, name: string) {
-    const m = cookieHeader.match(new RegExp(`${name}=([^;]+)`));
-    return m ? decodeURIComponent(m[1]) : null;
-}
-
-
 
 function sumWorkedSeconds(punches: Array<{ type: string; at: Date }>, endCap: Date) {
     let totalMs = 0;
@@ -31,18 +25,17 @@ function sumWorkedSeconds(punches: Array<{ type: string; at: Date }>, endCap: Da
 
 }
 
-export async function GET(req: Request) {
-    const cookieHeader = req.headers.get("cookie") ?? "";
-    const session = getCookie(cookieHeader, "session");
-    const role = getCookie(cookieHeader, "role"); // ✅ added
-    const storeCode = getCookie(cookieHeader, "storeCode");
-    const employeeId = getCookie(cookieHeader, "employeeId");
+export async function GET() {
+    const jar = await cookies();
+    const session = jar.get("session")?.value ?? "";
+    const role = jar.get("role")?.value ?? "";
+    const storeCode = jar.get("storeCode")?.value ?? "";
+    const employeeId = jar.get("employeeId")?.value ?? "";
 
     if (session !== "logged_in") {
         return NextResponse.json({ ok: false }, { status: 401 });
     }
 
-    // ✅ added: ensure this endpoint is employee-only
     if (role !== "EMPLOYEE") {
         return NextResponse.json({ ok: false, message: "Forbidden" }, { status: 403 });
     }

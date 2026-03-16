@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Subway Employee Portal",
-  description: "Subway Employee Portal",
+  title: "S-Ops Employee Portal",
+  description: "S-Ops Employee Portal",
 };
 
 export default function RootLayout({

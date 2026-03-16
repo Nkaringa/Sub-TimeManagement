@@ -1,18 +1,12 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
-export async function GET(req: Request) {
-    // These are non-httpOnly cookies you already set in /api/login
-    const cookieHeader = req.headers.get("cookie") ?? "";
-
-    const getCookie = (name: string) => {
-        const m = cookieHeader.match(new RegExp(`${name}=([^;]+)`));
-        return m ? decodeURIComponent(m[1]) : null;
-    };
-
-    const session = getCookie("session");
-    const role = getCookie("role");
-    const employeeId = getCookie("employeeId");
-    const storeCode = getCookie("storeCode");
+export async function GET() {
+    const jar = await cookies();
+    const session = jar.get("session")?.value ?? "";
+    const role = jar.get("role")?.value ?? null;
+    const employeeId = jar.get("employeeId")?.value ?? null;
+    const storeCode = jar.get("storeCode")?.value ?? null;
 
     if (session !== "logged_in") {
         return NextResponse.json({ ok: false }, { status: 401 });

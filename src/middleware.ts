@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 // ---------------------------------------------------------------------------
 
 /** Pages that are accessible without a session. */
-const PUBLIC_PAGES = ["/login", "/register"];
+const PUBLIC_PAGES = ["/login"];
 
 /**
  * API routes that are accessible without a session.
@@ -37,8 +37,8 @@ function isPublicApiRequest(pathname: string, method: string): boolean {
 
 const ROLE_ALLOWED_PREFIXES: Record<string, string[]> = {
   EMPLOYEE: ["/employee"],
-  MANAGER: ["/manager"],
-  SUPERADMIN: ["/superadmin", "/manager"], // if you set role=SUPERADMIN cookie on admin login
+  MANAGER: ["/manager", "/register"],
+  SUPERADMIN: ["/superadmin", "/manager", "/register"],
 };
 
 function dashboardForRole(role: string): string {

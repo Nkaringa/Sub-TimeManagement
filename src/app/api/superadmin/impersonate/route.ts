@@ -1,17 +1,11 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 
-function getCookie(cookieHeader: string, name: string) {
-    const m = cookieHeader.match(new RegExp(`${name}=([^;]+)`));
-    return m ? decodeURIComponent(m[1]) : null;
-}
-
-
-
 export async function POST(req: Request) {
-    const cookieHeader = req.headers.get("cookie") ?? "";
-    const session = getCookie(cookieHeader, "session");
-    const role = getCookie(cookieHeader, "role");
+    const jar = await cookies();
+    const session = jar.get("session")?.value ?? "";
+    const role = jar.get("role")?.value ?? "";
 
     if (session !== "logged_in" || role !== "SUPERADMIN") {
         return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
@@ -23,12 +17,12 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: false, message: "Missing storeCode" }, { status: 400 });
     }
 
-    // Verify store exists
+    // Verify store exists and is active
     const store = await prisma.store.findUnique({
         where: { code: storeCode },
-        select: { code: true, name: true },
+        select: { code: true, name: true, isActive: true },
     });
-    if (!store) {
+    if (!store || !store.isActive) {
         return NextResponse.json({ ok: false, message: "Store not found" }, { status: 404 });
     }
 

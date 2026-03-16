@@ -226,7 +226,7 @@ export default function RegisterPage() {
                         />
 
                         <h1 className="relative z-10 text-3xl font-black tracking-[0.14em] text-[color:var(--subway-yellow)] uppercase">
-                            Subway
+                            S-Ops
                         </h1>
                         <p className="mt-2 text-xs font-bold tracking-widest text-white/80 uppercase">
                             New Employee Registration
@@ -480,17 +480,17 @@ export default function RegisterPage() {
                             <div className="text-center">
                                 <button
                                     type="button"
-                                    onClick={() => router.push("/login")}
+                                    onClick={() => router.push("/manager/dashboard")}
                                     className="text-xs font-bold uppercase tracking-wider text-[color:var(--subway-green)]
                     hover:text-[color:var(--subway-green)]/80 transition"
                                 >
-                                    Back to login
+                                    Back to Dashboard
                                 </button>
                             </div>
                         </form>
 
                         <p className="mt-4 text-center text-[11px] text-gray-400">
-                            Subway Employee Portal • Registration
+                            S-Ops Employee Portal • Registration
                         </p>
                     </div>
 

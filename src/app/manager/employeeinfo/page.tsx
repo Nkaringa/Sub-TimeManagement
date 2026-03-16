@@ -365,8 +365,8 @@ export default function ManagerEmployeesPage() {
                                 <div className="col-span-3">Employee</div>
                                 <div className="col-span-2">Role</div>
                                 <div className="col-span-2">Status</div>
-                                <div className="col-span-3">Contact</div>
-                                <div className="col-span-2 text-right">Actions</div>
+                                <div className="col-span-2">Contact</div>
+                                <div className="col-span-3 text-right">Actions</div>
                             </div>
 
                             {loading ? (
@@ -411,12 +411,12 @@ export default function ManagerEmployeesPage() {
                                                 </span>
                                             </div>
 
-                                            <div className="col-span-3">
-                                                <div className="text-sm font-semibold text-gray-900">{r.email ?? "—"}</div>
+                                            <div className="col-span-2">
+                                                <div className="text-sm font-semibold text-gray-900 truncate">{r.email ?? "—"}</div>
                                                 <div className="mt-0.5 text-xs text-gray-500">{r.phone ?? "—"}</div>
                                             </div>
 
-                                            <div className="col-span-2 flex justify-end gap-2">
+                                            <div className="col-span-3 flex justify-end gap-2">
                                                 <button
                                                     type="button"
                                                     onClick={() => openView(r)}
@@ -587,6 +587,7 @@ export default function ManagerEmployeesPage() {
                             <input
                                 value={managerPin}
                                 onChange={(e) => setManagerPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                                onKeyDown={(e) => { if (e.key === "Enter" && managerPin.length >= 4 && !pinVerifying) verifyManagerPin(); }}
                                 placeholder="4–6 digits"
                                 inputMode="numeric"
                                 type="password"

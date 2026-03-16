@@ -1,19 +1,13 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 
-function getCookie(cookieHeader: string, name: string) {
-    const m = cookieHeader.match(new RegExp(`${name}=([^;]+)`));
-    return m ? decodeURIComponent(m[1]) : null;
-}
-
-
-
 export async function POST(req: Request) {
-    const cookieHeader = req.headers.get("cookie") ?? "";
-    const session = getCookie(cookieHeader, "session");
-    const role = getCookie(cookieHeader, "role");
-    const storeCode = getCookie(cookieHeader, "storeCode");
-    const employeeId = getCookie(cookieHeader, "employeeId");
+    const jar = await cookies();
+    const session = jar.get("session")?.value ?? "";
+    const role = jar.get("role")?.value ?? "";
+    const storeCode = jar.get("storeCode")?.value ?? "";
+    const employeeId = jar.get("employeeId")?.value ?? "";
 
     if (session !== "logged_in") {
         return NextResponse.json({ ok: false, message: "Not logged in" }, { status: 401 });
@@ -55,7 +49,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: false, message: "User not found/inactive" }, { status: 404 });
     }
 
-    // Prevent duplicate IN/OUT spam
+    // Prevent duplicate IN/OUT
     const lastPunch = await prisma.timePunch.findFirst({
         where: { userId: user.id },
         orderBy: { at: "desc" },

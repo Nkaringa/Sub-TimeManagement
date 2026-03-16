@@ -1,12 +1,6 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-
-function getCookie(cookieHeader: string, name: string) {
-    const m = cookieHeader.match(new RegExp(`${name}=([^;]+)`));
-    return m ? decodeURIComponent(m[1]) : null;
-}
-
-
 
 function sumWorkedMs(punches: Array<{ type: string; at: Date }>, endCap: Date): number {
     let totalMs = 0;
@@ -23,15 +17,14 @@ function sumWorkedMs(punches: Array<{ type: string; at: Date }>, endCap: Date): 
     }
     if (currentIn) totalMs += Math.max(0, endCap.getTime() - currentIn.getTime());
     return totalMs;
-
 }
 
 export async function POST(req: Request) {
-    const cookieHeader = req.headers.get("cookie") ?? "";
-    const session = getCookie(cookieHeader, "session");
-    const role = getCookie(cookieHeader, "role");
-    const storeCode = getCookie(cookieHeader, "storeCode");
-    const managerEmployeeId = getCookie(cookieHeader, "employeeId");
+    const jar = await cookies();
+    const session = jar.get("session")?.value ?? "";
+    const role = jar.get("role")?.value ?? "";
+    const storeCode = jar.get("storeCode")?.value ?? "";
+    const managerEmployeeId = jar.get("employeeId")?.value ?? "";
 
     if (session !== "logged_in") {
         return NextResponse.json({ ok: false, message: "Not logged in" }, { status: 401 });
@@ -58,7 +51,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: false, message: "days must be 7 or 14" }, { status: 400 });
     }
 
-    // Resolve store
     const store = await prisma.store.findUnique({
         where: { code: storeCode },
         select: { id: true },
@@ -67,7 +59,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: false, message: "Store not found" }, { status: 404 });
     }
 
-    // Resolve user — must belong to this store
     const user = await prisma.user.findFirst({
         where: { id: userId, storeId: store.id },
         select: { id: true, employeeId: true, fullName: true, isActive: true },
@@ -76,7 +67,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: false, message: "Employee not found" }, { status: 404 });
     }
 
-    // Period window
     const now = new Date();
     const periodStart = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 
@@ -95,7 +85,6 @@ export async function POST(req: Request) {
     const totalPaid = Math.round(hoursWorked * hourlyRate * 100) / 100;
     const employeeName = user.fullName?.trim() || user.employeeId;
 
-    // Transaction: log payment + delete punches
     await prisma.$transaction([
         prisma.paymentLog.create({
             data: {
@@ -108,7 +97,7 @@ export async function POST(req: Request) {
                 hoursWorked,
                 hourlyRate,
                 totalPaid,
-                paidByManager: managerEmployeeId ?? "unknown",
+                paidByManager: managerEmployeeId || "unknown",
             },
         }),
         prisma.timePunch.deleteMany({

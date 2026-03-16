@@ -1,20 +1,13 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
-function getCookie(cookieHeader: string, name: string) {
-    const m = cookieHeader.match(new RegExp(`${name}=([^;]+)`));
-    return m ? decodeURIComponent(m[1]) : null;
-}
-
-
-
-export async function POST(req: Request) {
-    const cookieHeader = req.headers.get("cookie") ?? "";
-    const session = getCookie(cookieHeader, "session");
-    const superadminMode = getCookie(cookieHeader, "superadminMode");
-    const adminId = getCookie(cookieHeader, "adminId");
+export async function POST() {
+    const jar = await cookies();
+    const session = jar.get("session")?.value ?? "";
+    const superadminMode = jar.get("superadminMode")?.value ?? "";
 
     // Must have been in admin impersonation mode
-    if (session !== "logged_in" || superadminMode !== "true" || !adminId) {
+    if (session !== "logged_in" || superadminMode !== "true") {
         return NextResponse.json({ ok: false, message: "Not in superadmin mode" }, { status: 401 });
     }
 

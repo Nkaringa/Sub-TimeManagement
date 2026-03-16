@@ -55,10 +55,30 @@ export default function ManagerDashboardPage() {
     const [isAdminMode, setIsAdminMode] = useState(false);
     const [adminRestoring, setAdminRestoring] = useState(false);
 
+    // Change PIN modal
+    const [changePinOpen, setChangePinOpen] = useState(false);
+    const [cpCurrent, setCpCurrent] = useState("");
+    const [cpNew, setCpNew] = useState("");
+    const [cpConfirm, setCpConfirm] = useState("");
+    const [cpLoading, setCpLoading] = useState(false);
+    const [cpMsg, setCpMsg] = useState<{ ok: boolean; text: string } | null>(null);
+    const [cpShowCurrent, setCpShowCurrent] = useState(false);
+    const [cpShowNew, setCpShowNew] = useState(false);
+
     useEffect(() => {
         const m = document.cookie.match(/superadminMode=([^;]+)/);
         setIsAdminMode(m?.[1] === "true");
     }, []);
+
+    // Close Change PIN modal on ESC
+    useEffect(() => {
+        if (!changePinOpen) return;
+        function onKeyDown(e: KeyboardEvent) {
+            if (e.key === "Escape") setChangePinOpen(false);
+        }
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [changePinOpen]);
 
     async function backToAdmin() {
         setAdminRestoring(true);
@@ -178,6 +198,30 @@ export default function ManagerDashboardPage() {
         }
     }
 
+    async function onChangePin(e: React.FormEvent) {
+        e.preventDefault();
+        setCpMsg(null);
+        setCpLoading(true);
+        try {
+            const res = await fetch("/api/change-pin", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ currentPin: cpCurrent, newPin: cpNew, confirmPin: cpConfirm }),
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok || !data?.ok) {
+                setCpMsg({ ok: false, text: data?.message ?? "Failed to change PIN." });
+                return;
+            }
+            setCpMsg({ ok: true, text: "PIN changed successfully!" });
+            setCpCurrent(""); setCpNew(""); setCpConfirm("");
+        } catch {
+            setCpMsg({ ok: false, text: "Network error. Please try again." });
+        } finally {
+            setCpLoading(false);
+        }
+    }
+
     return (
         <main className="min-h-screen px-5 py-8">
             {/* SuperAdmin Mode banner */}
@@ -202,15 +246,24 @@ export default function ManagerDashboardPage() {
                         <p className="mt-1 text-sm text-white/75">{todayDate()}</p>
                     </div>
 
-                    <button
-                        onClick={async () => {
-                            await fetch("/api/logout", { method: "POST", credentials: "include" }).catch(() => null);
-                            router.push("/login");
-                        }}
-                        className="rounded-lg bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15 active:scale-[0.99] transition"
-                    >
-                        Log out
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => { setCpCurrent(""); setCpNew(""); setCpConfirm(""); setCpMsg(null); setChangePinOpen(true); }}
+                            className="rounded-lg bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15 active:scale-[0.99] transition"
+                        >
+                            Change PIN
+                        </button>
+                        <button
+                            onClick={async () => {
+                                await fetch("/api/logout", { method: "POST", credentials: "include" }).catch(() => null);
+                                router.push("/login");
+                            }}
+                            className="rounded-lg bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15 active:scale-[0.99] transition"
+                        >
+                            Log out
+                        </button>
+                    </div>
                 </div>
 
                 {/* Main card */}
@@ -248,7 +301,7 @@ export default function ManagerDashboardPage() {
                     hover:brightness-105 active:scale-[0.99] transition disabled:opacity-60 disabled:hover:brightness-100"
                                     title={isOpen ? "Close store" : "Open store"}
                                 >
-                                    {toggling ? "..." : isOpen ? "CLOSE" : "OPEN"}
+                                    {toggling ? (isOpen ? "CLOSING..." : "OPENING...") : isOpen ? "CLOSE" : "OPEN"}
                                 </button>
                             </div>
                         </div>
@@ -288,7 +341,7 @@ export default function ManagerDashboardPage() {
                         </div>
 
                         {/* Actions */}
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        <div className="mt-4 grid gap-3 sm:grid-cols-3">
                             <button
                                 type="button"
                                 onClick={() => router.push("/manager/employeeinfo")}
@@ -306,6 +359,15 @@ export default function ManagerDashboardPage() {
                   hover:bg-[color:var(--subway-green)] hover:text-white active:scale-[0.99] transition"
                             >
                                 Time Reports
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => router.push("/register")}
+                                className="rounded-xl bg-[color:var(--subway-yellow)] px-5 py-3 text-sm font-extrabold tracking-widest uppercase
+                  text-[color:var(--subway-green)] hover:brightness-105 active:scale-[0.99] transition"
+                            >
+                                New Employee
                             </button>
                         </div>
 
@@ -436,6 +498,102 @@ export default function ManagerDashboardPage() {
                                 background: "linear-gradient(90deg, var(--subway-green) 0%, var(--subway-green) 50%, var(--subway-yellow) 50%, var(--subway-yellow) 100%)",
                             }}
                         />
+                    </div>
+                </div>
+            )}
+
+            {/* Change PIN Modal */}
+            {changePinOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-5" role="dialog" aria-modal="true" aria-label="Change PIN">
+                    <button type="button" className="absolute inset-0 bg-black/50" onClick={() => setChangePinOpen(false)} aria-label="Close" />
+
+                    <div className="relative w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-[0_30px_90px_rgba(0,0,0,0.45)]">
+                        <div className="relative bg-[color:var(--subway-green)] px-6 pt-6 pb-5 overflow-hidden">
+                            <div className="absolute -right-8 -top-6 h-[220%] w-24 rotate-[18deg] opacity-15"
+                                style={{ background: "linear-gradient(180deg, var(--subway-yellow), transparent)" }} />
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <div className="text-[11px] font-extrabold tracking-widest text-white/80 uppercase">Security</div>
+                                    <div className="mt-1 text-xl font-black tracking-wide text-[color:var(--subway-yellow)] uppercase">Change PIN</div>
+                                </div>
+                                <button type="button" onClick={() => setChangePinOpen(false)}
+                                    className="rounded-xl bg-white/10 px-3 py-2 text-sm font-extrabold text-white hover:bg-white/15 transition active:scale-[0.99]">
+                                    Close
+                                </button>
+                            </div>
+                            <div className="absolute inset-x-0 bottom-0 h-1.5"
+                                style={{ background: "linear-gradient(90deg, var(--subway-yellow), var(--subway-yellow-light), var(--subway-yellow))" }} />
+                        </div>
+
+                        <div className="px-6 py-6">
+                            <form onSubmit={onChangePin} className="space-y-3.5">
+                                <div>
+                                    <label className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">Current PIN</label>
+                                    <div className="mt-1.5 relative">
+                                        <input
+                                            value={cpCurrent}
+                                            onChange={(e) => setCpCurrent(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                                            placeholder="••••"
+                                            type={cpShowCurrent ? "text" : "password"}
+                                            inputMode="numeric"
+                                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 pr-16 py-2.5 text-sm text-gray-900 font-medium outline-none transition-all focus:bg-white focus:border-[color:var(--subway-green)] focus:ring-4 focus:ring-[color:var(--subway-green)]/10 placeholder:text-gray-400"
+                                        />
+                                        <button type="button" onClick={() => setCpShowCurrent((s) => !s)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 hover:text-[color:var(--subway-green)] transition">
+                                            {cpShowCurrent ? "Hide" : "Show"}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">New PIN</label>
+                                    <div className="mt-1.5 relative">
+                                        <input
+                                            value={cpNew}
+                                            onChange={(e) => setCpNew(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                                            placeholder="4–6 digit PIN"
+                                            type={cpShowNew ? "text" : "password"}
+                                            inputMode="numeric"
+                                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 pr-16 py-2.5 text-sm text-gray-900 font-medium outline-none transition-all focus:bg-white focus:border-[color:var(--subway-green)] focus:ring-4 focus:ring-[color:var(--subway-green)]/10 placeholder:text-gray-400"
+                                        />
+                                        <button type="button" onClick={() => setCpShowNew((s) => !s)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 hover:text-[color:var(--subway-green)] transition">
+                                            {cpShowNew ? "Hide" : "Show"}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">Confirm New PIN</label>
+                                    <input
+                                        value={cpConfirm}
+                                        onChange={(e) => setCpConfirm(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                                        placeholder="Repeat new PIN"
+                                        type="password"
+                                        inputMode="numeric"
+                                        className="mt-1.5 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 font-medium outline-none transition-all focus:bg-white focus:border-[color:var(--subway-green)] focus:ring-4 focus:ring-[color:var(--subway-green)]/10 placeholder:text-gray-400"
+                                    />
+                                </div>
+
+                                {cpMsg && (
+                                    <div className={`rounded-xl border px-3 py-2.5 text-sm font-medium ${cpMsg.ok ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"}`}>
+                                        {cpMsg.text}
+                                    </div>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    disabled={cpLoading || !cpCurrent || !cpNew || !cpConfirm}
+                                    className="w-full rounded-xl bg-[color:var(--subway-green)] py-3 font-extrabold tracking-widest text-white text-sm uppercase
+                  shadow-[0_8px_22px_rgba(0,140,21,0.30)] hover:brightness-110 active:scale-[0.98] transition disabled:opacity-40 disabled:shadow-none"
+                                >
+                                    {cpLoading ? "Saving..." : "Update PIN"}
+                                </button>
+                            </form>
+                        </div>
+
+                        <div className="h-2 w-full"
+                            style={{ background: "linear-gradient(90deg, var(--subway-green) 0%, var(--subway-green) 50%, var(--subway-yellow) 50%, var(--subway-yellow) 100%)" }} />
                     </div>
                 </div>
             )}

@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-
-function getCookie(cookieHeader: string, name: string) {
-    const m = cookieHeader.match(new RegExp(`${name}=([^;]+)`));
-    return m ? decodeURIComponent(m[1]) : null;
-}
 
 function startOfWeekMonday(d: Date) {
     const day = d.getDay(); // 0 Sun, 1 Mon...
@@ -37,12 +33,12 @@ function sumHoursFromPunches(punches: Array<{ type: string; at: Date }>, endCap:
     return totalMs / (1000 * 60 * 60);
 }
 
-export async function GET(req: Request) {
-    const cookieHeader = req.headers.get("cookie") ?? "";
-    const session = getCookie(cookieHeader, "session");
-    const role = getCookie(cookieHeader, "role");
-    const storeCode = getCookie(cookieHeader, "storeCode");
-    const employeeId = getCookie(cookieHeader, "employeeId");
+export async function GET() {
+    const jar = await cookies();
+    const session = jar.get("session")?.value ?? "";
+    const role = jar.get("role")?.value ?? "";
+    const storeCode = jar.get("storeCode")?.value ?? "";
+    const employeeId = jar.get("employeeId")?.value ?? "";
 
     if (session !== "logged_in") {
         return NextResponse.json({ ok: false, message: "Not logged in" }, { status: 401 });

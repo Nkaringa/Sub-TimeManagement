@@ -28,11 +28,22 @@ export default function LoginPage() {
 
     // superadmin modal
     const [adminOpen, setAdminOpen] = useState(false);
-    const [adminId, setAdminId] = useState(""); // e.g. "NK27"
-    const [adminPin, setAdminPin] = useState(""); // 8 digits
+    const [adminId, setAdminId] = useState("");
+    const [adminPin, setAdminPin] = useState("");
     const [adminShowPin, setAdminShowPin] = useState(false);
     const [adminLoading, setAdminLoading] = useState(false);
     const [adminError, setAdminError] = useState<string | null>(null);
+
+    // forgot PIN modal
+    const [forgotOpen, setForgotOpen] = useState(false);
+    const [fpStoreCode, setFpStoreCode] = useState("");
+    const [fpEmployeeId, setFpEmployeeId] = useState("");
+    const [fpPhone, setFpPhone] = useState("");
+    const [fpNew, setFpNew] = useState("");
+    const [fpConfirm, setFpConfirm] = useState("");
+    const [fpShowNew, setFpShowNew] = useState(false);
+    const [fpLoading, setFpLoading] = useState(false);
+    const [fpMsg, setFpMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
     // Load stores for dropdown
     useEffect(() => {
@@ -52,7 +63,10 @@ export default function LoginPage() {
                 const list: StoreOption[] = Array.isArray(data.stores) ? data.stores : [];
                 setStores(list);
 
-                if (!storeCode && list.length > 0) setStoreCode(list[0].code);
+                if (!storeCode && list.length > 0) {
+                    setStoreCode(list[0].code);
+                    setFpStoreCode(list[0].code);
+                }
             } catch (e: any) {
                 if (!mounted) return;
                 setStoresError(e?.message ?? "Failed to load stores");
@@ -133,16 +147,35 @@ export default function LoginPage() {
         setAdminError(null);
     }
 
-    // Close admin modal on ESC
-    useEffect(() => {
-        if (!adminOpen) return;
+    function openForgotModal() {
+        setFpStoreCode(storeCode || (stores[0]?.code ?? ""));
+        setFpEmployeeId("");
+        setFpPhone("");
+        setFpNew("");
+        setFpConfirm("");
+        setFpMsg(null);
+        setFpShowNew(false);
+        setForgotOpen(true);
+    }
 
+    function closeForgotModal() {
+        setForgotOpen(false);
+        setFpLoading(false);
+        setFpMsg(null);
+    }
+
+    // Close modals on ESC
+    useEffect(() => {
         function onKeyDown(e: KeyboardEvent) {
-            if (e.key === "Escape") closeAdminModal();
+            if (e.key === "Escape") {
+                closeAdminModal();
+                closeForgotModal();
+            }
         }
         window.addEventListener("keydown", onKeyDown);
         return () => window.removeEventListener("keydown", onKeyDown);
-    }, [adminOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const adminCanSubmit = useMemo(() => {
         return adminId.trim().length > 0 && /^\d{8}$/.test(adminPin) && !adminLoading;
@@ -182,6 +215,43 @@ export default function LoginPage() {
         }
     }
 
+    async function onForgotSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        setFpMsg(null);
+
+        if (!fpStoreCode) return setFpMsg({ ok: false, text: "Store is required." });
+        if (!fpEmployeeId.trim()) return setFpMsg({ ok: false, text: "Employee ID is required." });
+        if (fpPhone.length !== 4) return setFpMsg({ ok: false, text: "Enter exactly 4 phone digits." });
+        if (!/^\d{4,6}$/.test(fpNew)) return setFpMsg({ ok: false, text: "New PIN must be 4–6 digits." });
+        if (fpNew !== fpConfirm) return setFpMsg({ ok: false, text: "PINs do not match." });
+
+        setFpLoading(true);
+        try {
+            const res = await fetch("/api/forgot-pin", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    storeCode: fpStoreCode,
+                    employeeId: fpEmployeeId.trim(),
+                    phoneLast4: fpPhone,
+                    newPin: fpNew,
+                    confirmPin: fpConfirm,
+                }),
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok || !data?.ok) {
+                setFpMsg({ ok: false, text: data?.message ?? "Reset failed." });
+                return;
+            }
+            setFpMsg({ ok: true, text: "PIN reset successfully! You can now log in with your new PIN." });
+            setFpEmployeeId(""); setFpPhone(""); setFpNew(""); setFpConfirm("");
+        } catch {
+            setFpMsg({ ok: false, text: "Network error. Please try again." });
+        } finally {
+            setFpLoading(false);
+        }
+    }
+
     return (
         <main className="min-h-screen flex items-center justify-center px-5 py-10">
             <div className="w-full max-w-sm">
@@ -214,7 +284,7 @@ export default function LoginPage() {
                         </button>
 
                         <h1 className="relative z-10 text-3xl font-black tracking-[0.14em] text-[color:var(--subway-yellow)] uppercase">
-                            Subway
+                            S-Ops
                         </h1>
 
                         <div
@@ -375,18 +445,17 @@ export default function LoginPage() {
                             </button>
                         </form>
 
-                        <div className="mt-4 text-center">
+                        <div className="mt-3 text-center">
                             <button
                                 type="button"
-                                onClick={() => router.push("/register")}
-                                className="text-xs font-bold uppercase tracking-wider text-[color:var(--subway-green)]
-                hover:text-[color:var(--subway-green-dark)] transition-colors"
+                                onClick={openForgotModal}
+                                className="text-[11px] font-semibold text-[color:var(--subway-green)] hover:underline transition"
                             >
-                                New employee?
+                                Forgot PIN?
                             </button>
                         </div>
 
-                        <p className="mt-3 text-center text-[11px] text-gray-400">Subway Employee Portal • v2.0</p>
+                        <p className="mt-4 text-center text-[11px] text-gray-400">S-Ops Employee Portal • v2.0</p>
                     </div>
 
                     <div
@@ -518,6 +587,136 @@ export default function LoginPage() {
                                 </button>
 
                                 <p className="text-center text-[11px] text-gray-400">Use your SuperAdmin credentials.</p>
+                            </form>
+                        </div>
+
+                        <div
+                            className="h-2 w-full"
+                            style={{
+                                background: "linear-gradient(90deg, var(--subway-green) 0%, var(--subway-green) 50%, var(--subway-yellow) 50%, var(--subway-yellow) 100%)",
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* FORGOT PIN MODAL */}
+            {forgotOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-5" role="dialog" aria-modal="true" aria-label="Forgot PIN">
+                    <button type="button" className="absolute inset-0 bg-black/50" onClick={closeForgotModal} aria-label="Close" />
+
+                    <div className="relative w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-[0_30px_90px_rgba(0,0,0,0.45)]">
+                        <div className="relative bg-[color:var(--subway-green)] px-6 pt-6 pb-5 overflow-hidden">
+                            <div
+                                className="absolute -right-8 -top-6 h-[220%] w-24 rotate-[18deg] opacity-15"
+                                style={{ background: "linear-gradient(180deg, var(--subway-yellow), transparent)" }}
+                            />
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <div className="text-[11px] font-extrabold tracking-widest text-white/80 uppercase">Account Recovery</div>
+                                    <div className="mt-1 text-xl font-black tracking-wide text-[color:var(--subway-yellow)] uppercase">Reset PIN</div>
+                                </div>
+                                <button type="button" onClick={closeForgotModal}
+                                    className="rounded-xl bg-white/10 px-3 py-2 text-sm font-extrabold text-white hover:bg-white/15 transition active:scale-[0.99]">
+                                    Close
+                                </button>
+                            </div>
+                            <div
+                                className="absolute inset-x-0 bottom-0 h-1.5"
+                                style={{ background: "linear-gradient(90deg, var(--subway-yellow), var(--subway-yellow-light), var(--subway-yellow))" }}
+                            />
+                        </div>
+
+                        <div className="px-6 py-6">
+                            <form onSubmit={onForgotSubmit} className="space-y-3.5">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">Store</label>
+                                        <select
+                                            value={fpStoreCode}
+                                            onChange={(e) => setFpStoreCode(e.target.value)}
+                                            disabled={storesLoading || stores.length === 0}
+                                            className="mt-1.5 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 font-semibold outline-none transition-all
+                        focus:bg-white focus:border-[color:var(--subway-green)] focus:ring-4 focus:ring-[color:var(--subway-green)]/10 disabled:opacity-60"
+                                        >
+                                            {stores.map((s) => (
+                                                <option key={s.code} value={s.code}>{s.code} • {s.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">Employee ID</label>
+                                        <input
+                                            value={fpEmployeeId}
+                                            onChange={(e) => setFpEmployeeId(e.target.value)}
+                                            placeholder='0007 or "jc01"'
+                                            className="mt-1.5 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 font-semibold outline-none transition-all
+                        focus:bg-white focus:border-[color:var(--subway-green)] focus:ring-4 focus:ring-[color:var(--subway-green)]/10 placeholder:text-gray-400"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">Last 4 Digits of Phone</label>
+                                    <input
+                                        value={fpPhone}
+                                        onChange={(e) => setFpPhone(onlyDigits(e.target.value).slice(0, 4))}
+                                        placeholder="••••"
+                                        type="password"
+                                        inputMode="numeric"
+                                        className="mt-1.5 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 font-medium outline-none transition-all
+                      focus:bg-white focus:border-[color:var(--subway-green)] focus:ring-4 focus:ring-[color:var(--subway-green)]/10 placeholder:text-gray-400"
+                                    />
+                                    <p className="mt-1 text-[11px] text-gray-400">Used to verify your identity.</p>
+                                </div>
+
+                                <div>
+                                    <label className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">New PIN</label>
+                                    <div className="mt-1.5 relative">
+                                        <input
+                                            value={fpNew}
+                                            onChange={(e) => setFpNew(onlyDigits(e.target.value).slice(0, 6))}
+                                            placeholder="4–6 digit PIN"
+                                            type={fpShowNew ? "text" : "password"}
+                                            inputMode="numeric"
+                                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 pr-16 py-2.5 text-sm text-gray-900 font-medium outline-none transition-all
+                        focus:bg-white focus:border-[color:var(--subway-green)] focus:ring-4 focus:ring-[color:var(--subway-green)]/10 placeholder:text-gray-400"
+                                        />
+                                        <button type="button" onClick={() => setFpShowNew((s) => !s)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 hover:text-[color:var(--subway-green)] transition">
+                                            {fpShowNew ? "Hide" : "Show"}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">Confirm New PIN</label>
+                                    <input
+                                        value={fpConfirm}
+                                        onChange={(e) => setFpConfirm(onlyDigits(e.target.value).slice(0, 6))}
+                                        placeholder="Repeat new PIN"
+                                        type="password"
+                                        inputMode="numeric"
+                                        className="mt-1.5 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 font-medium outline-none transition-all
+                      focus:bg-white focus:border-[color:var(--subway-green)] focus:ring-4 focus:ring-[color:var(--subway-green)]/10 placeholder:text-gray-400"
+                                    />
+                                </div>
+
+                                {fpMsg && (
+                                    <div className={`rounded-xl border px-3 py-2.5 text-sm font-medium ${fpMsg.ok ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"}`}>
+                                        {fpMsg.text}
+                                    </div>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    disabled={fpLoading || !fpStoreCode || !fpEmployeeId || fpPhone.length !== 4 || !fpNew || !fpConfirm}
+                                    className="w-full rounded-xl bg-[color:var(--subway-green)] py-3 font-extrabold tracking-widest text-white text-sm uppercase
+                  shadow-[0_8px_22px_rgba(0,140,21,0.30)] transition-all hover:brightness-110
+                  disabled:opacity-40 disabled:shadow-none active:scale-[0.98]"
+                                >
+                                    {fpLoading ? "Resetting..." : "Reset PIN"}
+                                </button>
                             </form>
                         </div>
 
