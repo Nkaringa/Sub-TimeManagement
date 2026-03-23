@@ -1,109 +1,74 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server'
+import { getIronSession } from 'iron-session'
+import { SessionData, sessionOptions } from '@/lib/session'
 
-// ---------------------------------------------------------------------------
-// Route definitions
-// ---------------------------------------------------------------------------
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
 
-/** Pages that are accessible without a session. */
-const PUBLIC_PAGES = ["/login"];
+  // Public routes — no session needed
+  if (
+    pathname.startsWith('/login') ||
+    pathname === '/admin/login' ||
+    pathname.startsWith('/api/auth')
+  ) {
+    return NextResponse.next()
+  }
 
-/**
- * API routes that are accessible without a session.
- * - /api/login            – employee/manager login
- * - /api/register         – employee self-registration
- * - /api/logout           – harmless without a session (just clears cookies)
- * - /api/superadmin/login – superadmin login (no session yet)
- */
-const PUBLIC_API_PREFIXES = [
-  "/api/login",
-  "/api/register",
-  "/api/logout",
-  "/api/superadmin/login",
-];
+  const response = NextResponse.next()
+  const session = await getIronSession<SessionData>(request, response, sessionOptions)
 
-/**
- * GET /api/stores is used by the login page to populate the store dropdown.
- * PATCH/POST on that same path require auth, which the route handler enforces.
- */
-function isPublicApiRequest(pathname: string, method: string): boolean {
-  if (PUBLIC_API_PREFIXES.some((p) => pathname.startsWith(p))) return true;
-  if (pathname === "/api/stores" && method === "GET") return true;
-  return false;
+  // Not authenticated
+  if (!session.userId) {
+    if (pathname.startsWith('/admin')) {
+      return NextResponse.redirect(new URL('/admin/login', request.url))
+    }
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  const { role, mustChangePin } = session
+
+  // Must change PIN — lock to /change-pin
+  if (mustChangePin && pathname !== '/change-pin') {
+    return NextResponse.redirect(new URL('/change-pin', request.url))
+  }
+
+  // /change-pin — redirect to dashboard if pin is already fine
+  if (pathname === '/change-pin') {
+    if (!mustChangePin) {
+      return NextResponse.redirect(new URL(dashboardFor(role), request.url))
+    }
+    return NextResponse.next()
+  }
+
+  // Role-based route guards
+  if (
+    pathname.startsWith('/employee') ||
+    pathname.startsWith('/api/employee') ||
+    pathname === '/api/punch'
+  ) {
+    if (role !== 'EMPLOYEE') return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  if (pathname.startsWith('/manager') || pathname.startsWith('/api/manager')) {
+    if (role !== 'MANAGER') return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  if (
+    (pathname.startsWith('/admin') && pathname !== '/admin/login') ||
+    pathname.startsWith('/api/admin')
+  ) {
+    if (role !== 'SUPER_ADMIN') return NextResponse.redirect(new URL('/admin/login', request.url))
+  }
+
+  return response
 }
 
-// ---------------------------------------------------------------------------
-// Role → allowed path prefixes & default dashboard
-// ---------------------------------------------------------------------------
-
-const ROLE_ALLOWED_PREFIXES: Record<string, string[]> = {
-  EMPLOYEE: ["/employee"],
-  MANAGER: ["/manager", "/register"],
-  SUPERADMIN: ["/superadmin", "/manager", "/register"],
-};
-
-function dashboardForRole(role: string): string {
-  if (role === "MANAGER") return "/manager/dashboard";
-  if (role === "SUPERADMIN") return "/superadmin/dashboard";
-  return "/employee/dashboard";
+function dashboardFor(role: SessionData['role']): string {
+  if (role === 'SUPER_ADMIN') return '/admin/dashboard'
+  if (role === 'MANAGER') return '/manager/dashboard'
+  return '/employee/dashboard'
 }
-
-// ---------------------------------------------------------------------------
-// Middleware
-// ---------------------------------------------------------------------------
-
-export function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
-  const method = req.method;
-
-  const session = req.cookies.get("session")?.value;
-  const role = req.cookies.get("role")?.value;
-
-  const isLoggedIn = session === "logged_in";
-
-  // ── API routes ────────────────────────────────────────────────────────────
-  if (pathname.startsWith("/api/")) {
-    // Allow whitelisted public API calls through unconditionally.
-    if (isPublicApiRequest(pathname, method)) return NextResponse.next();
-
-    // Every other API route requires a session.
-    if (!isLoggedIn) {
-      return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
-    }
-
-    // Let the individual route handler deal with role checks.
-    return NextResponse.next();
-  }
-
-  // ── Public pages (login / register) ──────────────────────────────────────
-  if (PUBLIC_PAGES.some((p) => pathname.startsWith(p))) {
-    // Already logged-in users get bounced to their dashboard.
-    if (isLoggedIn && role) {
-      return NextResponse.redirect(new URL(dashboardForRole(role), req.url));
-    }
-    return NextResponse.next();
-  }
-
-  // ── All other pages require a session ────────────────────────────────────
-  if (!isLoggedIn) {
-    return NextResponse.redirect(new URL("/login", req.url));
-  }
-
-  // ── Role-based page access ────────────────────────────────────────────────
-  if (role) {
-    const allowed = ROLE_ALLOWED_PREFIXES[role] ?? [];
-    const hasAccess = allowed.some((p) => pathname.startsWith(p));
-    if (!hasAccess) {
-      return NextResponse.redirect(new URL(dashboardForRole(role), req.url));
-    }
-  }
-
-  return NextResponse.next();
-}
-
-// ---------------------------------------------------------------------------
-// Matcher – run on everything except Next.js internals and static assets
-// ---------------------------------------------------------------------------
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.svg$).*)"],
-};
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+}

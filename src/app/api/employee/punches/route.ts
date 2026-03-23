@@ -8,12 +8,13 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
   }
 
-  const openPunch = await prisma.timePunch.findFirst({
-    where: { userId: session.userId, clockOut: null },
+  const punches = await prisma.timePunch.findMany({
+    where: { userId: session.userId },
+    orderBy: { clockIn: 'desc' },
+    take: 50,
   })
 
-  return NextResponse.json({
-    clockedIn: !!openPunch,
-    clockInTime: openPunch?.clockIn ?? null,
-  })
+  return NextResponse.json(
+    punches.map(p => ({ id: p.id, clockIn: p.clockIn, clockOut: p.clockOut }))
+  )
 }

@@ -7,86 +7,41 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  EMPLOYEE
-  MANAGER
-}
-
 model Store {
-  id        String   @id @default(cuid())
-  code      String   @unique
-  name      String
-  isOpen    Boolean  @default(true)
-  isActive  Boolean  @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  users     User[]
-  punches   TimePunch[]
+  id          String @id @default(cuid())
+  name        String
+  storeNumber String @unique
+  timezone    String // IANA timezone e.g. "America/New_York", "America/Chicago"
+  users       User[]
 }
 
 model User {
-  id          String   @id @default(cuid())
-  storeId     String
-  store       Store    @relation(fields: [storeId], references: [id])
+  id            String      @id @default(cuid())
+  employeeId    String
+  name          String
+  phone         String?
+  email         String?
+  pin           String      // bcrypt hashed, 12 rounds
+  mustChangePin Boolean     @default(false)
+  role          Role
+  storeId       String?
+  store         Store?      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  punches       TimePunch[]
 
-  employeeId  String
-  fullName    String   @default("")
-  pinHash     String
-  role        Role     @default(EMPLOYEE)
+  @@unique([employeeId, storeId])
+}
 
-  phone       String?
-  email       String?
-  ssnLast4    String?
-
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-
-  punches     TimePunch[]
-
-  @@unique([storeId, employeeId])
+enum Role {
+  SUPER_ADMIN
+  MANAGER
+  EMPLOYEE
 }
 
 model TimePunch {
-  id        String   @id @default(cuid())
-  storeId   String
-  store     Store    @relation(fields: [storeId], references: [id])
-
+  id        String    @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
-
-  type      String
-  at        DateTime @default(now())
-
-  createdAt DateTime @default(now())
-
-  @@index([userId, at])
-  @@index([storeId, at])
-}
-
-model SuperAdmin {
-  id        String   @id @default(cuid())
-  adminId   String   @unique
-  pinHash   String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-}
-
-model PaymentLog {
-  id            String   @id @default(cuid())
-  storeId       String
-  userId        String
-  employeeId    String
-  employeeName  String
-  periodStart   DateTime
-  periodEnd     DateTime
-  hoursWorked   Float
-  hourlyRate    Float
-  totalPaid     Float
-  paidAt        DateTime @default(now())
-  paidByManager String
-
-  @@index([storeId, paidAt])
-  @@index([userId, paidAt])
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clockIn   DateTime
+  clockOut  DateTime?
+  createdAt DateTime  @default(now())
 }

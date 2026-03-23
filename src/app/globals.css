@@ -1,27 +1,31 @@
 @import "tailwindcss";
 
-/* =========================
-   Subway (Fast-Food) Theme
-   ========================= */
 :root {
-  --subway-green: #008c15;
-  --subway-yellow: #ffc600;
-  --subway-yellow-light: #ffd740;
-
-  /* App background + text */
-  --bg: #f0f7f0;
-  --text: #1a2e1a;
-
-  /* Keep these mapped so existing Tailwind theme vars still work */
-  --background: var(--bg);
-  --foreground: var(--text);
+  color-scheme: light;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: #F1F5F9;
+  --color-foreground: #0F172A;
+  --color-primary: #3B82F6;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #F8FAFC;
+  --color-secondary-foreground: #0F172A;
+  --color-muted: #F1F5F9;
+  --color-muted-foreground: #64748B;
+  --color-accent: #EFF6FF;
+  --color-accent-foreground: #3B82F6;
+  --color-destructive: #EF4444;
+  --color-destructive-foreground: #FFFFFF;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #0F172A;
+  --color-border: #E2E8F0;
+  --color-input: #FFFFFF;
+  --color-ring: #3B82F6;
+  --color-success: #10B981;
+  --font-sans: var(--font-manrope);
+  --font-display: var(--font-playfair);
+  --font-mono: var(--font-jetbrains);
 }
 
 html,
@@ -30,41 +34,90 @@ body {
 }
 
 body {
-  color: var(--text);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  background: #F1F5F9;
+  color: #0F172A;
+  font-family: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  /* Immersive Subway-branded background */
-  background-image:
-    /* Top-left bright green glow */
-    radial-gradient(
-      ellipse 700px 500px at 10% 20%,
-      rgba(0, 140, 21, 0.5),
-      transparent 70%
-    ),
-    /* Center yellow warm glow */
-      radial-gradient(
-        ellipse 600px 400px at 50% 50%,
-        rgba(255, 198, 0, 0.12),
-        transparent 70%
-      ),
-    /* Bottom-right green glow */
-      radial-gradient(
-        ellipse 500px 500px at 85% 80%,
-        rgba(0, 140, 21, 0.35),
-        transparent 70%
-      ),
-    /* Diagonal stripe texture (subtle) */
-      repeating-linear-gradient(
-        135deg,
-        transparent,
-        transparent 40px,
-        rgba(255, 255, 255, 0.015) 40px,
-        rgba(255, 255, 255, 0.015) 80px
-      ),
-    /* Base gradient */
-      linear-gradient(160deg, #007a12 0%, #005a0e 40%, #004a0b 100%);
 }
 
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+::selection {
+  background: rgba(59, 130, 246, 0.12);
+  color: #0F172A;
+}
+
+input,
+select,
+textarea {
+  color-scheme: light;
+}
+
+/* Card elevation levels */
+.card-base {
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.card-raised {
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.08), 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.card-floating {
+  box-shadow: 0 8px 40px rgba(15, 23, 42, 0.12), 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+/* Fade-in animation for page elements */
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.3); }
+}
+
+.animate-fade-up {
+  animation: fadeSlideUp 0.35s ease both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease both;
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Stagger delays */
+.delay-1 { animation-delay: 0.05s; }
+.delay-2 { animation-delay: 0.10s; }
+.delay-3 { animation-delay: 0.15s; }
+.delay-4 { animation-delay: 0.20s; }
+.delay-5 { animation-delay: 0.25s; }
+.delay-6 { animation-delay: 0.30s; }
