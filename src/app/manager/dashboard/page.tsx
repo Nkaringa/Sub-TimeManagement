@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 
 interface Employee {
@@ -9,18 +9,72 @@ interface Employee {
   name: string
   role: string
   clockedIn: boolean
+  lastPunchTime: string | null
+  weeklyHours: number
+}
+
+interface Stats {
+  clockedIn: number
+  absent: number
+  totalHoursToday: number
+}
+
+type FilterTab = 'all' | 'in' | 'out'
+
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .map(w => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+}
+
+function formatLastPunch(isoTime: string | null, isActive: boolean): { primary: string; secondary: string; isToday: boolean } | null {
+  if (!isoTime) return null
+  const punch = new Date(isoTime)
+  const now = new Date()
+  const todayStart = new Date(now)
+  todayStart.setHours(0, 0, 0, 0)
+  const yesterdayStart = new Date(todayStart)
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1)
+
+  const timeStr = punch.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+
+  if (punch >= todayStart) {
+    return { primary: timeStr, secondary: 'TODAY', isToday: true }
+  } else if (punch >= yesterdayStart) {
+    return isActive
+      ? { primary: timeStr, secondary: 'Yesterday', isToday: false }
+      : { primary: 'Yesterday', secondary: timeStr, isToday: false }
+  } else {
+    const dateLabel = punch.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    return { primary: dateLabel, secondary: timeStr, isToday: false }
+  }
+}
+
+function getRoleDisplay(role: string): { title: string; dept: string } {
+  if (role === 'MANAGER') return { title: 'Store Manager', dept: 'Management' }
+  return { title: 'Team Member', dept: 'Store Operations' }
 }
 
 export default function ManagerDashboardPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
+  const [stats, setStats] = useState<Stats>({ clockedIn: 0, absent: 0, totalHoursToday: 0 })
+  const [filter, setFilter] = useState<FilterTab>('all')
+  const [search, setSearch] = useState('')
   const [error, setError] = useState('')
 
   useEffect(() => {
     fetch('/api/manager/employees')
       .then(r => r.json())
       .then(data => {
-        if (data.employees) setEmployees(data.employees)
-        else setError('Failed to load employees.')
+        if (data.employees) {
+          setEmployees(data.employees)
+          setStats(data.stats)
+        } else {
+          setError('Failed to load employees.')
+        }
       })
       .catch(() => setError('Failed to load employees.'))
   }, [])
@@ -30,194 +84,305 @@ export default function ManagerDashboardPage() {
     window.location.href = '/login'
   }
 
-  const clockedInCount = employees.filter(e => e.clockedIn).length
-  const clockedOutCount = employees.filter(e => !e.clockedIn).length
+  const filtered = useMemo(() => {
+    let list = employees
+    if (filter === 'in') list = list.filter(e => e.clockedIn)
+    if (filter === 'out') list = list.filter(e => !e.clockedIn)
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter(e =>
+        e.name.toLowerCase().includes(q) ||
+        e.employeeId.toLowerCase().includes(q) ||
+        e.role.toLowerCase().includes(q)
+      )
+    }
+    return list
+  }, [employees, filter, search])
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100">
+    <div className="min-h-screen" style={{ backgroundColor: '#fefae0' }}>
       {/* Header */}
-      <header
-        className="bg-white h-16 px-6 flex items-center justify-between shrink-0 sticky top-0 z-10"
-        style={{ boxShadow: '0 1px 0 #E2E8F0' }}
-      >
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <circle cx="12" cy="12" r="9" />
-              <path strokeLinecap="round" d="M12 7v5l3 3" />
-            </svg>
-          </div>
-          <span className="font-[family-name:var(--font-playfair)] text-xl font-bold text-slate-900 italic">
-            Shiftly
-          </span>
-          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-[10px] font-bold text-blue-600 tracking-widest uppercase border border-blue-100">
-            Manager
-          </span>
-        </div>
+      <header className="px-8 h-16 flex items-center justify-between shrink-0">
+        <span className="text-xl font-black tracking-widest uppercase" style={{ color: '#6B1C1C', letterSpacing: '0.15em' }}>
+          SHIFTLY
+        </span>
 
-        <div className="flex items-center gap-3">
-          <Link
-            href="/manager/create"
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors cursor-pointer"
-            style={{ boxShadow: '0 2px 8px rgba(15,23,42,0.15)' }}
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Add employee
-          </Link>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-            </svg>
-            <span className="hidden sm:inline">Sign out</span>
-          </button>
-        </div>
-      </header>
-
-      <main className="flex-1 px-4 py-8 max-w-2xl mx-auto w-full">
-        {/* Page title + stats */}
-        <div className="mb-6 animate-fade-up">
-          <h1 className="font-[family-name:var(--font-playfair)] text-2xl font-bold text-slate-900 italic mb-4">
-            Team overview
-          </h1>
-
-          {employees.length > 0 && (
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-white rounded-2xl p-4" style={{ boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
-                <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase mb-2">Total</p>
-                <p className="text-3xl font-bold text-slate-900 font-[family-name:var(--font-jetbrains)]">
-                  {employees.length}
-                </p>
-              </div>
-              <div
-                className="bg-emerald-600 rounded-2xl p-4"
-                style={{ boxShadow: '0 4px 16px rgba(5,150,105,0.2)' }}
-              >
-                <p className="text-[10px] font-bold text-emerald-200 tracking-widest uppercase mb-2">On shift</p>
-                <p className="text-3xl font-bold text-white font-[family-name:var(--font-jetbrains)]">
-                  {clockedInCount}
-                </p>
-              </div>
-              <div className="bg-white rounded-2xl p-4" style={{ boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
-                <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase mb-2">Off shift</p>
-                <p className="text-3xl font-bold text-slate-400 font-[family-name:var(--font-jetbrains)]">
-                  {clockedOutCount}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Error */}
-        {error && (
-          <div className="flex items-center gap-2.5 text-sm text-red-600 bg-white rounded-xl px-4 py-3.5 border border-red-100 mb-4 animate-fade-in">
-            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-            </svg>
-            {error}
-          </div>
-        )}
-
-        {/* Filter tabs */}
-        {employees.length > 0 && (
-          <div className="flex items-center gap-2 mb-4 animate-fade-up delay-1">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 text-white text-xs font-semibold cursor-default">
-              All employees
-              <span className="bg-white/20 text-white px-1.5 py-0.5 rounded-full text-[10px]">{employees.length}</span>
+        <div className="flex items-center gap-10">
+          <nav className="flex items-center gap-8">
+            <span
+              className="text-sm font-semibold cursor-default pb-0.5"
+              style={{ color: '#6B1C1C', borderBottom: '2px solid #6B1C1C' }}
+            >
+              Dashboard
             </span>
-            {clockedInCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-semibold cursor-default">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                On shift · {clockedInCount}
-              </span>
-            )}
-          </div>
-        )}
+            <span className="text-sm font-medium cursor-default" style={{ color: '#9CA3AF' }}>
+              Timesheets
+            </span>
+          </nav>
 
-        {/* Empty state */}
-        {employees.length === 0 && !error && (
-          <div className="text-center py-24 animate-fade-up delay-1">
-            <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center mx-auto mb-4">
-              <svg className="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-              </svg>
-            </div>
-            <p className="text-slate-600 font-semibold mb-1">No employees yet</p>
-            <p className="text-sm text-slate-400 mb-5">Add your first team member to get started</p>
+          <div className="flex items-center gap-3">
             <Link
               href="/manager/create"
-              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 cursor-pointer"
+              style={{ backgroundColor: '#374151' }}
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
-              Add first employee
+              Add Employee
             </Link>
+            <button
+              onClick={handleSignOut}
+              className="text-sm font-semibold px-5 py-2 rounded-xl border-2 transition-colors cursor-pointer"
+              style={{ borderColor: '#6B1C1C', color: '#6B1C1C' }}
+            >
+              Sign Out
+            </button>
           </div>
-        )}
+        </div>
+      </header>
 
-        {/* Employee list */}
-        {employees.length > 0 && (
-          <div
-            className="bg-white rounded-2xl overflow-hidden animate-fade-up delay-2"
-            style={{ boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}
-          >
-            {employees.map((emp, idx) => (
-              <Link key={emp.id} href={`/manager/employees/${emp.id}`}>
-                <div
-                  className={`flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors cursor-pointer ${
-                    idx < employees.length - 1 ? 'border-b border-slate-50' : ''
-                  }`}
-                >
-                  {/* Avatar */}
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm ${
-                    emp.clockedIn
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-slate-100 text-slate-500'
-                  }`}>
-                    {emp.name.charAt(0).toUpperCase()}
-                  </div>
+      <main className="px-8 py-6">
+        {/* Title + Stats row */}
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <h1 className="text-4xl font-black mb-1" style={{ color: '#6B1C1C' }}>
+              Operations Dashboard
+            </h1>
+            <p className="text-sm" style={{ color: '#9CA3AF' }}>
+              Real-time workforce monitoring and labor distribution.
+            </p>
+          </div>
 
-                  {/* Name + ID */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-slate-900 truncate">{emp.name}</p>
-                      {emp.role === 'MANAGER' && (
-                        <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-50 text-[10px] font-bold text-amber-700 border border-amber-100 tracking-wide uppercase">
-                          Mgr
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-slate-400 font-[family-name:var(--font-jetbrains)] mt-0.5">
-                      {emp.employeeId}
-                    </p>
-                  </div>
+          <div className="flex items-stretch gap-4">
+            {/* Live Workforce */}
+            <div className="rounded-2xl px-8 py-5" style={{ backgroundColor: '#6B1C1C', minWidth: '180px' }}>
+              <p className="text-[10px] font-bold tracking-widest uppercase mb-3" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                LIVE WORKFORCE
+              </p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-5xl font-black text-white leading-none">{stats.clockedIn}</span>
+                <span className="text-lg font-bold" style={{ color: 'rgba(255,255,255,0.65)' }}>In</span>
+              </div>
+            </div>
 
-                  {/* Status + chevron */}
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                      emp.clockedIn
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                        : 'bg-slate-50 text-slate-400 border border-slate-100'
-                    }`}>
-                      {emp.clockedIn && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-                      )}
-                      {emp.clockedIn ? 'In' : 'Out'}
-                    </span>
-                    <svg className="w-4 h-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                    </svg>
-                  </div>
+            {/* Availability */}
+            <div className="bg-white rounded-2xl px-8 py-5" style={{ minWidth: '160px', boxShadow: '0 1px 4px rgba(107,28,28,0.07)' }}>
+              <p className="text-[10px] font-bold tracking-widest uppercase mb-3" style={{ color: '#9CA3AF' }}>
+                AVAILABILITY
+              </p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-5xl font-black leading-none" style={{ color: '#6B1C1C' }}>{stats.absent}</span>
+                <span className="text-base font-medium" style={{ color: '#9CA3AF' }}>Absent</span>
+              </div>
+            </div>
+
+            {/* Total Hours Today */}
+            <div className="bg-white rounded-2xl px-8 py-5" style={{ minWidth: '200px', boxShadow: '0 1px 4px rgba(107,28,28,0.07)' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: '#F3F4F6' }}>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ color: '#6B7280' }}>
+                    <circle cx="12" cy="12" r="9" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 3" />
+                  </svg>
                 </div>
-              </Link>
+                <p className="text-[10px] font-bold tracking-widest uppercase" style={{ color: '#9CA3AF' }}>
+                  TOTAL HOURS TODAY
+                </p>
+              </div>
+              <span className="text-3xl font-black" style={{ color: '#1F2937' }}>
+                {stats.totalHoursToday.toFixed(1)} hrs
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Filter tabs + Search */}
+        <div className="flex items-center justify-between mb-6">
+          <div
+            className="flex items-center gap-1 rounded-full p-1"
+            style={{ backgroundColor: 'rgba(107,28,28,0.08)' }}
+          >
+            {(
+              [
+                { key: 'all', label: 'All Staff' },
+                { key: 'in', label: 'Clocked In' },
+                { key: 'out', label: 'Clocked Out' },
+              ] as { key: FilterTab; label: string }[]
+            ).map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setFilter(tab.key)}
+                className="px-5 py-2 rounded-full text-sm font-semibold transition-all cursor-pointer"
+                style={
+                  filter === tab.key
+                    ? { backgroundColor: 'white', color: '#1F2937', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
+                    : { color: '#6B7280', backgroundColor: 'transparent' }
+                }
+              >
+                {tab.label}
+              </button>
             ))}
           </div>
+
+          <div className="relative">
+            <svg
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+              style={{ color: '#9CA3AF' }}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0Z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search by name, ID or role..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-80 pl-11 pr-5 py-3 rounded-full text-sm outline-none bg-white placeholder-stone-400"
+              style={{ border: '1px solid rgba(107,28,28,0.08)', color: '#1F2937' }}
+            />
+          </div>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="flex items-center gap-2 text-sm bg-white rounded-2xl px-5 py-3 mb-4" style={{ color: '#6B1C1C' }}>
+            {error}
+          </div>
         )}
+
+        {/* Employee Status table */}
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(107,28,28,0.07)' }}>
+          <div className="px-8 py-5" style={{ borderBottom: '1px solid #F5F0E8' }}>
+            <h2 className="text-lg font-bold" style={{ color: '#6B1C1C' }}>Employee Status</h2>
+          </div>
+
+          {/* Column headers */}
+          <div
+            className="px-8 py-3"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '2.5fr 1.2fr 1.8fr 1.4fr 1.2fr 1.4fr',
+              borderBottom: '1px solid #F5F0E8',
+            }}
+          >
+            {['EMPLOYEE', 'STATUS', 'ROLE', 'LAST PUNCH', 'WEEKLY TOTAL', 'ACTIONS'].map(col => (
+              <span key={col} className="text-[10px] font-bold tracking-widest" style={{ color: '#9CA3AF' }}>
+                {col}
+              </span>
+            ))}
+          </div>
+
+          {/* Rows */}
+          {filtered.length === 0 ? (
+            <div className="py-16 text-center">
+              <p className="text-sm font-medium" style={{ color: '#9CA3AF' }}>No employees found</p>
+            </div>
+          ) : (
+            filtered.map((emp, idx) => {
+              const punch = formatLastPunch(emp.lastPunchTime, emp.clockedIn)
+              const roleDisplay = getRoleDisplay(emp.role)
+              const initials = getInitials(emp.name)
+              const isLast = idx === filtered.length - 1
+
+              return (
+                <div
+                  key={emp.id}
+                  className="px-8 py-5 items-center"
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '2.5fr 1.2fr 1.8fr 1.4fr 1.2fr 1.4fr',
+                    borderBottom: isLast ? 'none' : '1px solid #FAF7F2',
+                  }}
+                >
+                  {/* Employee */}
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold text-white"
+                      style={{ backgroundColor: '#6B7A9F' }}
+                    >
+                      {initials}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold" style={{ color: '#1F2937' }}>{emp.name}</p>
+                      <p className="text-xs" style={{ color: '#9CA3AF' }}>ID: #{emp.employeeId}</p>
+                    </div>
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <span
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wide"
+                      style={
+                        emp.clockedIn
+                          ? { backgroundColor: '#F0F7F0', color: '#374151', border: '1px solid #C6E8C6' }
+                          : { backgroundColor: '#F5F5F5', color: '#6B7280', border: '1px solid #E5E7EB' }
+                      }
+                    >
+                      <span
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{ backgroundColor: emp.clockedIn ? '#22C55E' : '#9CA3AF' }}
+                      />
+                      {emp.clockedIn ? 'ACTIVE' : 'INACTIVE'}
+                    </span>
+                  </div>
+
+                  {/* Role */}
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: '#1F2937' }}>{roleDisplay.title}</p>
+                    <p className="text-xs" style={{ color: '#9CA3AF' }}>{roleDisplay.dept}</p>
+                  </div>
+
+                  {/* Last Punch */}
+                  <div>
+                    {punch ? (
+                      <>
+                        <p
+                          className="text-sm font-bold"
+                          style={{ color: emp.clockedIn && punch.isToday ? '#6B1C1C' : '#9CA3AF' }}
+                        >
+                          {punch.primary}
+                        </p>
+                        <p
+                          className="text-xs"
+                          style={{
+                            color: '#9CA3AF',
+                            fontStyle: !punch.isToday && punch.secondary !== punch.primary ? 'italic' : 'normal',
+                          }}
+                        >
+                          {punch.secondary}
+                        </p>
+                      </>
+                    ) : (
+                      <span className="text-sm" style={{ color: '#9CA3AF' }}>—</span>
+                    )}
+                  </div>
+
+                  {/* Weekly Total */}
+                  <div>
+                    <span className="text-sm font-bold" style={{ color: '#1F2937' }}>
+                      {emp.weeklyHours.toFixed(1)} hrs
+                    </span>
+                  </div>
+
+                  {/* Actions */}
+                  <div>
+                    <Link
+                      href={`/manager/employees/${emp.id}`}
+                      className="text-xs font-bold tracking-wider uppercase transition-opacity hover:opacity-70 cursor-pointer"
+                      style={{ color: '#5B7EA6' }}
+                    >
+                      FULL HISTORY →
+                    </Link>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
       </main>
     </div>
   )
