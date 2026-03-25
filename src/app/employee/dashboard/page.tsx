@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { formatHours } from '@/lib/hours'
+import { useEffect, useState, useMemo } from 'react'
 
 interface HoursData {
   weekly: number
@@ -17,35 +16,21 @@ interface Punch {
   clockOut: string | null
 }
 
-function fmtDuration(ms: number): string {
-  const totalMins = Math.round(ms / 60000)
-  const h = Math.floor(totalMins / 60)
-  const m = totalMins % 60
-  if (h === 0) return `${m}m`
-  if (m === 0) return `${h}h`
-  return `${h}h ${m}m`
-}
-
-function fmtElapsed(ms: number): string {
-  const totalSecs = Math.floor(ms / 1000)
-  const h = Math.floor(totalSecs / 3600)
-  const m = Math.floor((totalSecs % 3600) / 60)
-  const s = totalSecs % 60
-  if (h > 0) {
-    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-  }
-  return `${m}:${String(s).padStart(2, '0')}`
-}
-
 export default function EmployeeDashboardPage() {
   const [clockedIn, setClockedIn] = useState(false)
   const [clockInTime, setClockInTime] = useState<string | null>(null)
+  const [storeName, setStoreName] = useState<string | null>(null)
   const [hours, setHours] = useState<HoursData | null>(null)
   const [punches, setPunches] = useState<Punch[]>([])
   const [punchError, setPunchError] = useState('')
   const [loadError, setLoadError] = useState('')
   const [processing, setProcessing] = useState(false)
-  const [elapsed, setElapsed] = useState(0)
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
 
   async function loadData() {
     try {
@@ -62,6 +47,7 @@ export default function EmployeeDashboardPage() {
       const h = await hoursRes.json()
       setClockedIn(status.clockedIn)
       setClockInTime(status.clockInTime)
+      setStoreName(status.storeName ?? null)
       setHours(h)
       if (punchesRes.ok) setPunches(await punchesRes.json())
     } catch {
@@ -69,20 +55,17 @@ export default function EmployeeDashboardPage() {
     }
   }
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  useEffect(() => { loadData() }, [])
 
-  useEffect(() => {
-    if (!clockedIn || !clockInTime) {
-      setElapsed(0)
-      return
-    }
-    const update = () => setElapsed(Date.now() - new Date(clockInTime).getTime())
-    update()
-    const id = setInterval(update, 1000)
-    return () => clearInterval(id)
-  }, [clockedIn, clockInTime])
+  const monthlyHours = useMemo(() => {
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    return punches.reduce((sum, p) => {
+      const ci = new Date(p.clockIn)
+      if (ci < monthStart) return sum
+      const co = p.clockOut ? new Date(p.clockOut) : now
+      return sum + (co.getTime() - ci.getTime()) / 3600000
+    }, 0)
+  }, [punches, now])
 
   async function handlePunch() {
     setPunchError('')
@@ -90,11 +73,8 @@ export default function EmployeeDashboardPage() {
     try {
       const res = await fetch('/api/punch', { method: 'POST' })
       const data = await res.json()
-      if (!res.ok) {
-        setPunchError(data.error || 'Punch failed.')
-      } else {
-        await loadData()
-      }
+      if (!res.ok) setPunchError(data.error || 'Punch failed.')
+      else await loadData()
     } catch {
       setPunchError('Network error. Please try again.')
     } finally {
@@ -107,231 +87,230 @@ export default function EmployeeDashboardPage() {
     window.location.href = '/login'
   }
 
+  const h12 = now.getHours() % 12 || 12
+  const mins = String(now.getMinutes()).padStart(2, '0')
+  const secs = String(now.getSeconds()).padStart(2, '0')
+  const dateLabel = now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })
+  const monthLabel = now.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+  const clockInLabel = clockInTime
+    ? new Date(clockInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : null
+
   if (loadError) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-100">
-        <div className="flex items-center gap-2.5 text-sm text-red-600 bg-white rounded-2xl px-5 py-4 border border-red-100" style={{ boxShadow: '0 4px 24px rgba(15,23,42,0.06)' }}>
-          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-          </svg>
-          {loadError}
-        </div>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#fefae0' }}>
+        <div className="bg-white rounded-2xl px-6 py-4 text-sm font-medium" style={{ color: '#6B1C1C' }}>{loadError}</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100">
+    <div className="min-h-screen" style={{ backgroundColor: '#fefae0' }}>
       {/* Header */}
-      <header
-        className="bg-white h-16 px-6 flex items-center justify-between shrink-0 sticky top-0 z-10"
-        style={{ boxShadow: '0 1px 0 #E2E8F0' }}
-      >
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <circle cx="12" cy="12" r="9" />
-              <path strokeLinecap="round" d="M12 7v5l3 3" />
-            </svg>
-          </div>
-          <span className="font-[family-name:var(--font-playfair)] text-xl font-bold text-slate-900 italic">
-            Shiftly
-          </span>
+      <header className="px-8 pt-7 pb-2 flex items-start justify-between max-w-5xl mx-auto">
+        <div>
+          <p className="text-xs font-black tracking-widest uppercase mb-1" style={{ color: '#6B1C1C' }}>SHIFTLY</p>
+          <h1 className="text-3xl font-black" style={{ color: '#2D0D0D' }}>Punch Interface</h1>
         </div>
-
-        <div className="flex items-center gap-4">
-          {clockedIn && (
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-              <span className="text-xs font-semibold text-emerald-700">On the clock</span>
-            </div>
-          )}
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-            </svg>
-            Sign out
-          </button>
-        </div>
+        <button
+          onClick={handleSignOut}
+          className="text-sm font-semibold px-4 py-2 rounded-full border-2 mt-2 transition-opacity hover:opacity-70 cursor-pointer"
+          style={{ borderColor: '#6B1C1C', color: '#6B1C1C' }}
+        >
+          Sign Out
+        </button>
       </header>
 
-      <main className="flex-1 px-4 py-8 max-w-lg mx-auto w-full space-y-5">
+      <main className="px-8 py-5 grid grid-cols-1 lg:grid-cols-2 gap-5 max-w-5xl mx-auto">
 
-        {/* Live timer card — shown when clocked in */}
-        {clockedIn && clockInTime && (
-          <div
-            className="bg-slate-900 rounded-2xl p-6 animate-fade-up"
-            style={{ boxShadow: '0 8px 40px rgba(15,23,42,0.18)' }}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse-dot" />
-                <span className="text-xs font-bold text-emerald-400 tracking-widest uppercase">
-                  On the clock
+        {/* ── LEFT COLUMN ── */}
+        <div className="flex flex-col gap-4">
+
+          {/* Current Time */}
+          <div className="bg-white rounded-2xl p-6 text-center" style={{ boxShadow: '0 1px 4px rgba(107,28,28,0.07)' }}>
+            <p className="text-[10px] font-bold tracking-widest uppercase mb-4" style={{ color: '#9CA3AF' }}>CURRENT TIME</p>
+            <div>
+              <span className="text-7xl font-black tabular-nums leading-none" style={{ color: '#6B1C1C' }}>
+                {h12}:{mins}
+              </span>
+              <span className="text-3xl font-bold" style={{ color: '#D1D5DB' }}>:{secs}</span>
+            </div>
+            <p className="text-sm font-medium mt-3" style={{ color: '#93C5FD' }}>{dateLabel}</p>
+            {clockedIn && clockInLabel && (
+              <div className="flex justify-center mt-4">
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium" style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#9CA3AF' }} />
+                  Clocked In since {clockInLabel}
                 </span>
               </div>
-              <span className="text-xs font-[family-name:var(--font-jetbrains)] text-slate-400">
-                Since{' '}
-                {new Date(clockInTime).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </span>
-            </div>
-            <p className="font-[family-name:var(--font-playfair)] text-6xl font-bold text-white tabular-nums tracking-tight leading-none">
-              {fmtElapsed(elapsed)}
-            </p>
+            )}
           </div>
-        )}
 
-        {/* Punch error */}
-        {punchError && (
-          <div className="flex items-center gap-2.5 text-sm text-red-600 bg-white rounded-xl px-4 py-3.5 border border-red-100 animate-fade-in">
-            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-            </svg>
-            {punchError}
-          </div>
-        )}
-
-        {/* Clock in/out button */}
-        <button
-          onClick={handlePunch}
-          disabled={processing}
-          className={`w-full h-20 rounded-2xl text-xl font-bold tracking-wide transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:pointer-events-none animate-fade-up delay-1 ${
-            clockedIn
-              ? 'bg-white border-2 border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
-              : 'bg-slate-900 text-white hover:bg-slate-800 active:scale-[0.99]'
-          }`}
-          style={!clockedIn ? { boxShadow: '0 8px 32px rgba(15,23,42,0.2)' } : { boxShadow: '0 1px 4px rgba(15,23,42,0.06)' }}
-        >
-          {processing ? (
-            <span className="flex items-center justify-center gap-3">
-              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              Processing…
-            </span>
-          ) : clockedIn ? (
-            <span className="flex items-center justify-center gap-3">
-              <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 7.5A2.25 2.25 0 0 1 7.5 5.25h9a2.25 2.25 0 0 1 2.25 2.25v9a2.25 2.25 0 0 1-2.25 2.25h-9a2.25 2.25 0 0 1-2.25-2.25v-9Z" />
-              </svg>
-              Clock out
-            </span>
-          ) : (
-            <span className="flex items-center justify-center gap-3">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
-              </svg>
-              Clock in
-            </span>
+          {/* Clock In / Clock Out */}
+          {punchError && (
+            <p className="text-xs text-center font-semibold" style={{ color: '#6B1C1C' }}>{punchError}</p>
           )}
-        </button>
-
-        {/* Hours section */}
-        {hours && (
-          <div className="animate-fade-up delay-2">
-            <p className="text-[11px] font-bold text-slate-400 tracking-widest uppercase mb-3 px-1">
-              Hours summary
-            </p>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { label: 'This week', value: formatHours(hours.weekly), highlight: false },
-                { label: hours.periodLabel || 'Current period', value: formatHours(hours.biweekly), highlight: true },
-                { label: hours.prevPeriodLabel || 'Prior period', value: formatHours(hours.prevBiweekly), highlight: false, muted: true },
-              ].map((stat, i) => (
-                <div
-                  key={i}
-                  className={`rounded-2xl p-4 ${stat.highlight ? 'bg-slate-900' : 'bg-white'}`}
-                  style={{ boxShadow: stat.highlight ? '0 4px 20px rgba(15,23,42,0.15)' : '0 1px 3px rgba(15,23,42,0.06)' }}
-                >
-                  <p className={`text-[10px] font-bold tracking-wide uppercase mb-2.5 ${
-                    stat.highlight ? 'text-slate-400' : 'text-slate-400'
-                  }`}>
-                    {stat.label}
-                  </p>
-                  <p className={`text-2xl font-bold font-[family-name:var(--font-jetbrains)] tabular-nums ${
-                    stat.highlight ? 'text-white' : stat.muted ? 'text-slate-400' : 'text-slate-900'
-                  }`}>
-                    {stat.value}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Punch history */}
-        {punches.length > 0 && (
-          <div className="animate-fade-up delay-3">
-            <p className="text-[11px] font-bold text-slate-400 tracking-widest uppercase mb-3 px-1">
-              Punch history
-            </p>
-            <div
-              className="bg-white rounded-2xl overflow-hidden"
-              style={{ boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={!clockedIn ? handlePunch : undefined}
+              disabled={clockedIn || processing}
+              className="bg-white rounded-2xl p-6 flex flex-col items-center gap-3 transition-opacity cursor-pointer disabled:opacity-40"
+              style={{ boxShadow: '0 1px 4px rgba(107,28,28,0.07)' }}
             >
-              {punches.map((punch, idx) => {
-                const clockIn = new Date(punch.clockIn)
-                const clockOut = punch.clockOut ? new Date(punch.clockOut) : null
-                const duration = clockOut
-                  ? clockOut.getTime() - clockIn.getTime()
-                  : Date.now() - clockIn.getTime()
-                const isActive = !clockOut
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#F3F4F6' }}>
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ color: '#6B7280' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-bold text-sm" style={{ color: '#1F2937' }}>Clock In</p>
+                <p className="text-xs" style={{ color: '#9CA3AF' }}>Start your shift</p>
+              </div>
+            </button>
 
-                return (
-                  <div
-                    key={punch.id}
-                    className={`flex items-center gap-4 px-5 py-4 ${
-                      idx < punches.length - 1 ? 'border-b border-slate-50' : ''
-                    }`}
-                  >
-                    {/* Timeline dot */}
-                    <div className="flex flex-col items-center shrink-0">
-                      <div className={`w-2.5 h-2.5 rounded-full border-2 ${
-                        isActive
-                          ? 'border-emerald-500 bg-emerald-500 animate-pulse-dot'
-                          : 'border-slate-300 bg-white'
-                      }`} />
-                    </div>
+            <button
+              onClick={clockedIn ? handlePunch : undefined}
+              disabled={!clockedIn || processing}
+              className="rounded-2xl p-6 flex flex-col items-center gap-3 transition-opacity cursor-pointer disabled:opacity-50"
+              style={{
+                backgroundColor: '#6B1C1C',
+                boxShadow: clockedIn ? '0 4px 20px rgba(107,28,28,0.4)' : 'none',
+              }}
+            >
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}>
+                {processing ? (
+                  <svg className="w-6 h-6 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" />
+                  </svg>
+                )}
+              </div>
+              <div>
+                <p className="font-bold text-sm text-white">Clock Out</p>
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>End your shift</p>
+              </div>
+            </button>
+          </div>
 
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-slate-400 font-medium mb-0.5">
-                        {clockIn.toLocaleDateString([], {
-                          weekday: 'short',
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </p>
-                      <p className="text-sm font-semibold font-[family-name:var(--font-jetbrains)] text-slate-700">
-                        {clockIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        <span className="text-slate-300 mx-2">→</span>
-                        {clockOut ? (
-                          clockOut.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                        ) : (
-                          <span className="text-emerald-600 font-[family-name:var(--font-manrope)]">Now</span>
-                        )}
-                      </p>
-                    </div>
-
-                    <div className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-bold font-[family-name:var(--font-jetbrains)] ${
-                      isActive
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                        : 'bg-slate-50 text-slate-500 border border-slate-100'
-                    }`}>
-                      {fmtDuration(duration)}
-                    </div>
-                  </div>
-                )
-              })}
+          {/* Current Shift */}
+          <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 1px 4px rgba(107,28,28,0.07)' }}>
+            <p className="font-bold mb-4 text-sm" style={{ color: '#1F2937' }}>Current Shift</p>
+            <div className="flex items-center justify-between">
+              <span className="text-sm" style={{ color: '#9CA3AF' }}>Work Location</span>
+              <span className="text-sm font-bold" style={{ color: '#1F2937' }}>{storeName ?? '—'}</span>
             </div>
           </div>
-        )}
+        </div>
+
+        {/* ── RIGHT COLUMN ── */}
+        <div className="flex flex-col gap-4">
+
+          {/* Biweekly + This Week */}
+          {hours && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 1px 4px rgba(107,28,28,0.07)' }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#FDF4F4' }}>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ color: '#6B1C1C' }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                    </svg>
+                  </div>
+                  <span className="text-sm font-semibold" style={{ color: '#1F2937' }}>Biweekly period</span>
+                </div>
+                <p className="text-4xl font-black tabular-nums leading-none" style={{ color: '#1F2937' }}>
+                  {hours.biweekly.toFixed(1)}
+                  <span className="text-sm font-bold ml-1" style={{ color: '#9CA3AF' }}>HRS</span>
+                </p>
+              </div>
+
+              <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 1px 4px rgba(107,28,28,0.07)' }}>
+                <p className="text-sm font-medium mb-3" style={{ color: '#9CA3AF' }}>This Week</p>
+                <p className="text-4xl font-black tabular-nums leading-none" style={{ color: '#6B1C1C' }}>
+                  {hours.weekly.toFixed(1)}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Monthly Summary */}
+          <div className="rounded-2xl p-5 flex items-center justify-between" style={{ backgroundColor: '#E5D9B6', border: '1px solid rgba(107,28,28,0.1)' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#3D0E0E' }}>
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-bold text-sm" style={{ color: '#2D0D0D' }}>Monthly Summary</p>
+                <p className="text-xs" style={{ color: '#9CA3AF' }}>{monthLabel}</p>
+              </div>
+            </div>
+            <p className="text-xl font-black tabular-nums" style={{ color: '#6B1C1C' }}>{monthlyHours.toFixed(1)}h</p>
+          </div>
+
+          {/* Punch History */}
+          <div className="bg-white rounded-2xl p-5 flex-1" style={{ boxShadow: '0 1px 4px rgba(107,28,28,0.07)' }}>
+            <div className="flex items-center justify-between mb-5">
+              <p className="font-black text-lg" style={{ color: '#1F2937' }}>Punch History</p>
+              <button className="text-sm font-semibold" style={{ color: '#6B1C1C' }}>View All →</button>
+            </div>
+
+            {punches.length === 0 ? (
+              <p className="text-sm text-center py-6" style={{ color: '#9CA3AF' }}>No punches yet</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr>
+                    {['DATE', 'CLOCK IN', 'CLOCK OUT', 'TOTAL'].map(col => (
+                      <th key={col} className="text-left pb-3 text-[10px] font-bold tracking-widest" style={{ color: '#9CA3AF' }}>{col}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {punches.slice(0, 5).map((punch, idx) => {
+                    const ci = new Date(punch.clockIn)
+                    const co = punch.clockOut ? new Date(punch.clockOut) : null
+                    const durationH = co ? ((co.getTime() - ci.getTime()) / 3600000).toFixed(1) : null
+                    const dateStr = ci.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    const dayStr = ci.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase()
+                    const isLast = idx === Math.min(punches.length, 5) - 1
+
+                    return (
+                      <tr key={punch.id} className={!isLast ? 'border-b' : ''} style={{ borderColor: '#F3F4F6' }}>
+                        <td className="py-3 pr-2">
+                          <p className="font-bold text-xs" style={{ color: '#1F2937' }}>{dateStr}</p>
+                          <p className="text-[10px] font-bold tracking-wider" style={{ color: '#6B1C1C' }}>{dayStr}</p>
+                        </td>
+                        <td className="py-3 pr-2 text-xs font-medium" style={{ color: '#4B5563' }}>
+                          {ci.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                        <td className="py-3 pr-2 text-xs font-medium" style={{ color: '#4B5563' }}>
+                          {co
+                            ? co.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            : <span style={{ color: '#6B1C1C' }}>Active</span>
+                          }
+                        </td>
+                        <td className="py-3">
+                          {durationH ? (
+                            <span className="px-2.5 py-1 rounded-lg text-xs font-bold" style={{ backgroundColor: '#F3F4F6', color: '#4B5563' }}>
+                              {durationH}h
+                            </span>
+                          ) : (
+                            <span className="text-xs" style={{ color: '#9CA3AF' }}>—</span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
       </main>
     </div>
   )

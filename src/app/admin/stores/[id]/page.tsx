@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 
 interface StoreEmployee {
   id: string
@@ -20,6 +18,17 @@ interface StoreDetail {
   storeNumber: string
   timezone: string
   employees: StoreEmployee[]
+}
+
+function getInitials(name: string) {
+  return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
+}
+
+const AVATAR_COLORS = ['#4F6BAD', '#5B8DB8', '#6B7A9F', '#7B6B9F', '#9F6B6B']
+function avatarColor(name: string) {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
 
 export default function AdminStoreDetailPage() {
@@ -86,11 +95,8 @@ export default function AdminStoreDetailPage() {
 
   if (loadError) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-100">
-        <div className="flex items-center gap-2.5 text-sm text-red-600 bg-white rounded-2xl px-5 py-4 border border-red-100" style={{ boxShadow: '0 4px 24px rgba(15,23,42,0.06)' }}>
-          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-          </svg>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#fefae0' }}>
+        <div className="text-sm font-medium px-5 py-4 rounded-2xl bg-white" style={{ color: '#DC2626' }}>
           {loadError}
         </div>
       </div>
@@ -99,242 +105,219 @@ export default function AdminStoreDetailPage() {
 
   if (!store) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100">
-        <div className="flex items-center gap-2.5 text-sm text-slate-500">
-          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          Loading…
-        </div>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#fefae0' }}>
+        <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" style={{ color: '#6B1C1C' }}>
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
       </div>
     )
   }
 
-  const clockedIn = store.employees.filter(e => e.clockedIn).length
+  const clockedInCount = store.employees.filter(e => e.clockedIn).length
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100">
-      {/* Header */}
-      <header
-        className="bg-white h-16 px-6 flex items-center justify-between shrink-0 sticky top-0 z-10"
-        style={{ boxShadow: '0 1px 0 #E2E8F0' }}
-      >
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <circle cx="12" cy="12" r="9" />
-              <path strokeLinecap="round" d="M12 7v5l3 3" />
-            </svg>
-          </div>
-          <span className="font-[family-name:var(--font-playfair)] text-xl font-bold text-slate-900 italic">
-            Shiftly
-          </span>
-        </div>
+    <div className="min-h-screen" style={{ backgroundColor: '#fefae0' }}>
+      {/* Top bar */}
+      <div className="px-8 pt-6 pb-6 flex items-center justify-between">
+        <span className="text-sm font-black tracking-widest uppercase" style={{ color: '#6B1C1C', letterSpacing: '0.15em' }}>
+          SHIFTLY
+        </span>
         <Link
           href="/admin/dashboard"
-          className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors"
+          className="inline-flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-70"
+          style={{ color: '#6B1C1C' }}
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
           </svg>
-          Stores
+          Back to stores
         </Link>
-      </header>
+      </div>
 
-      <main className="flex-1 px-4 py-8 max-w-lg mx-auto w-full space-y-5">
+      <main className="px-8 pb-10 space-y-4 max-w-3xl mx-auto">
 
-        {/* Store identity card */}
-        <div
-          className="bg-white rounded-2xl p-5 animate-fade-up"
-          style={{ boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}
-        >
-          {!editing ? (
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center shrink-0">
-                  <svg className="w-6 h-6 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016 2.993 2.993 0 0 0 2.25-1.016 3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72" />
-                  </svg>
-                </div>
+        {/* Top row: store info + stat cards */}
+        <div className="flex gap-4">
+          {/* Store identity */}
+          <div className="flex-1 bg-white rounded-2xl p-5 flex items-center justify-between" style={{ boxShadow: '0 1px 6px rgba(107,28,28,0.07)' }}>
+            {!editing ? (
+              <>
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">{store.name}</h2>
-                  <p className="text-xs text-slate-400 font-[family-name:var(--font-jetbrains)] mt-0.5">
-                    #{store.storeNumber}
+                  <h2 className="text-2xl font-black mb-1" style={{ color: '#1F2937' }}>{store.name}</h2>
+                  <p className="text-xs font-bold tracking-widest uppercase" style={{ color: '#9CA3AF' }}>
+                    STORE ID: #{store.storeNumber}
                   </p>
                 </div>
-              </div>
-              <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
-                Edit name
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-[11px] font-bold text-slate-400 tracking-widest uppercase">Edit store name</p>
-              <div className="flex gap-2">
-                <Input
-                  value={editName}
-                  onChange={e => setEditName(e.target.value)}
-                  className="flex-1"
-                  autoFocus
-                />
-                <Button size="sm" onClick={handleSaveName}>Save</Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => { setEditing(false); setEditName(store.name) }}
+                <button
+                  onClick={() => setEditing(true)}
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold transition-opacity hover:opacity-70 cursor-pointer shrink-0"
+                  style={{ color: '#5B8DB8' }}
                 >
-                  Cancel
-                </Button>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+                  </svg>
+                  Edit name
+                </button>
+              </>
+            ) : (
+              <div className="w-full space-y-3">
+                <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: '#9CA3AF' }}>Edit store name</p>
+                <div className="flex gap-2">
+                  <input
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    autoFocus
+                    className="flex-1 px-3 py-2 rounded-xl text-sm outline-none"
+                    style={{ backgroundColor: '#F0F0F0', border: 'none', color: '#1F2937' }}
+                  />
+                  <button
+                    onClick={handleSaveName}
+                    className="px-4 py-2 rounded-xl text-sm font-bold text-white cursor-pointer"
+                    style={{ backgroundColor: '#6B1C1C' }}
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => { setEditing(false); setEditName(store.name) }}
+                    className="px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer"
+                    style={{ border: '1px solid #E5E7EB', color: '#6B7280' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {saveError && <p className="text-xs" style={{ color: '#DC2626' }}>{saveError}</p>}
               </div>
-              {saveError && <p className="text-xs text-red-500">{saveError}</p>}
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Employees count */}
+          <div className="bg-white rounded-2xl px-8 py-5 flex flex-col justify-between" style={{ minWidth: '140px', boxShadow: '0 1px 6px rgba(107,28,28,0.07)' }}>
+            <p className="text-[10px] font-bold tracking-widest uppercase mb-3" style={{ color: '#9CA3AF' }}>EMPLOYEES</p>
+            <span className="text-5xl font-black" style={{ color: '#1F2937' }}>{store.employees.length}</span>
+          </div>
+
+          {/* On shift */}
+          <div
+            className="rounded-2xl px-8 py-5 flex flex-col justify-between"
+            style={{
+              minWidth: '140px',
+              backgroundColor: clockedInCount > 0 ? '#4CAF80' : '#F3F4F6',
+              boxShadow: '0 1px 6px rgba(107,28,28,0.07)',
+            }}
+          >
+            <p className="text-[10px] font-bold tracking-widest uppercase mb-3" style={{ color: clockedInCount > 0 ? 'rgba(255,255,255,0.7)' : '#9CA3AF' }}>
+              ON SHIFT
+            </p>
+            <span className="text-5xl font-black" style={{ color: clockedInCount > 0 ? 'white' : '#9CA3AF' }}>
+              {clockedInCount}
+            </span>
+          </div>
         </div>
 
-        {/* Quick stats */}
-        {store.employees.length > 0 && (
-          <div className="grid grid-cols-2 gap-3 animate-fade-up delay-1">
-            <div className="bg-white rounded-2xl p-4" style={{ boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
-              <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase mb-2">Employees</p>
-              <p className="text-3xl font-bold text-slate-900 font-[family-name:var(--font-jetbrains)]">
-                {store.employees.length}
-              </p>
-            </div>
-            <div
-              className={`rounded-2xl p-4 ${clockedIn > 0 ? 'bg-emerald-600' : 'bg-white'}`}
-              style={{ boxShadow: clockedIn > 0 ? '0 4px 16px rgba(5,150,105,0.2)' : '0 1px 3px rgba(15,23,42,0.06)' }}
-            >
-              <p className={`text-[10px] font-bold tracking-widest uppercase mb-2 ${clockedIn > 0 ? 'text-emerald-200' : 'text-slate-400'}`}>
-                On shift
-              </p>
-              <p className={`text-3xl font-bold font-[family-name:var(--font-jetbrains)] ${clockedIn > 0 ? 'text-white' : 'text-slate-400'}`}>
-                {clockedIn}
-              </p>
-            </div>
+        {/* Employees list */}
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(107,28,28,0.07)' }}>
+          <div className="px-6 py-4" style={{ borderBottom: '1px solid #F5F0E8' }}>
+            <h3 className="text-sm font-black tracking-widest uppercase" style={{ color: '#1F2937' }}>EMPLOYEES</h3>
           </div>
-        )}
-
-        {/* Employee list */}
-        <div className="animate-fade-up delay-2">
-          <p className="text-[11px] font-bold text-slate-400 tracking-widest uppercase mb-3 px-1">
-            Employees
-          </p>
 
           {store.employees.length === 0 ? (
-            <div
-              className="bg-white rounded-2xl p-8 text-center"
-              style={{ boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}
-            >
-              <p className="text-sm text-slate-400">No employees in this store yet</p>
+            <div className="py-12 text-center">
+              <p className="text-sm" style={{ color: '#9CA3AF' }}>No employees in this store yet</p>
             </div>
           ) : (
-            <div
-              className="bg-white rounded-2xl overflow-hidden"
-              style={{ boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}
-            >
-              {store.employees.map((emp, idx) => (
+            store.employees.map((emp, idx) => (
+              <div
+                key={emp.id}
+                className="flex items-center gap-4 px-6 py-4"
+                style={{ borderBottom: idx < store.employees.length - 1 ? '1px solid #F5F0E8' : 'none' }}
+              >
+                {/* Status dot */}
                 <div
-                  key={emp.id}
-                  className={`flex items-center gap-4 px-5 py-4 ${
-                    idx < store.employees.length - 1 ? 'border-b border-slate-50' : ''
-                  }`}
+                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: emp.clockedIn ? '#22C55E' : '#D1D5DB' }}
+                />
+
+                {/* Avatar */}
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-bold text-white"
+                  style={{ backgroundColor: avatarColor(emp.name) }}
                 >
-                  {/* Status dot */}
-                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                    emp.clockedIn
-                      ? 'bg-emerald-500 animate-pulse-dot'
-                      : 'bg-slate-200'
-                  }`} />
-
-                  {/* Name + ID */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-slate-900 truncate">{emp.name}</p>
-                      {emp.role === 'MANAGER' && (
-                        <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-50 text-[10px] font-bold text-amber-700 border border-amber-100 uppercase tracking-wide">
-                          MGR
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-slate-400 font-[family-name:var(--font-jetbrains)]">{emp.employeeId}</p>
-                  </div>
-
-                  {/* Status + reset PIN */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                      emp.clockedIn
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                        : 'bg-slate-50 text-slate-400 border border-slate-100'
-                    }`}>
-                      {emp.clockedIn ? 'In' : 'Out'}
-                    </span>
-
-                    {pinResetStatus[emp.id] === 'done' ? (
-                      <span className="flex items-center gap-1 text-xs text-emerald-600 font-semibold">
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                        </svg>
-                        Reset
-                      </span>
-                    ) : (
-                      <button
-                        className="text-xs font-semibold text-slate-400 hover:text-slate-700 transition-colors cursor-pointer flex items-center gap-1"
-                        onClick={() => handleResetPin(emp.id)}
-                      >
-                        {pinResetStatus[emp.id] === 'error' && (
-                          <span className="text-red-400">✗</span>
-                        )}
-                        Reset PIN
-                      </button>
-                    )}
-                  </div>
+                  {getInitials(emp.name)}
                 </div>
-              ))}
-            </div>
+
+                {/* Name + ID */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold" style={{ color: '#1F2937' }}>{emp.name}</p>
+                  <p className="text-xs" style={{ color: '#9CA3AF' }}>{emp.employeeId}</p>
+                </div>
+
+                {/* Status pill */}
+                <span
+                  className="px-4 py-1.5 rounded-full text-xs font-bold text-white shrink-0"
+                  style={{ backgroundColor: emp.clockedIn ? '#4CAF80' : '#6B1C1C' }}
+                >
+                  {emp.clockedIn ? 'IN' : 'OUT'}
+                </span>
+
+                {/* Reset PIN */}
+                <div className="shrink-0 w-24 text-right">
+                  {pinResetStatus[emp.id] === 'done' ? (
+                    <span className="text-xs font-semibold" style={{ color: '#16A34A' }}>✓ Reset</span>
+                  ) : (
+                    <button
+                      onClick={() => handleResetPin(emp.id)}
+                      className="text-sm font-semibold cursor-pointer transition-opacity hover:opacity-70"
+                      style={{ color: pinResetStatus[emp.id] === 'error' ? '#DC2626' : '#6B7280' }}
+                    >
+                      Reset PIN
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
           )}
         </div>
 
         {/* Danger zone */}
-        <div className="animate-fade-up delay-3">
-          <p className="text-[11px] font-bold text-slate-400 tracking-widest uppercase mb-3 px-1">
-            Danger zone
+        <div>
+          <p className="text-center text-sm font-black tracking-widest uppercase py-3" style={{ color: '#6B1C1C' }}>
+            DANGER ZONE
           </p>
-          <div
-            className="bg-white rounded-2xl p-5"
-            style={{ boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}
-          >
+          <div className="bg-white rounded-2xl p-6 flex items-center justify-between gap-6" style={{ boxShadow: '0 1px 6px rgba(107,28,28,0.07)' }}>
+            <div>
+              <p className="text-base font-bold mb-1" style={{ color: '#6B1C1C' }}>Delete this store</p>
+              <p className="text-sm leading-relaxed" style={{ color: '#6B7280' }}>
+                Once you delete a store, there is no going back. All employee data and history for {store.name} will be permanently removed.
+              </p>
+              {deleteError && <p className="text-xs mt-2" style={{ color: '#DC2626' }}>{deleteError}</p>}
+            </div>
             {!deleteConfirming ? (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900 mb-0.5">Delete store</p>
-                  <p className="text-xs text-slate-400">Permanently remove this location</p>
-                </div>
-                <Button size="sm" variant="destructive" onClick={() => setDeleteConfirming(true)}>
-                  Delete
-                </Button>
-              </div>
+              <button
+                onClick={() => setDeleteConfirming(true)}
+                className="shrink-0 px-6 py-3 rounded-2xl text-sm font-bold text-white cursor-pointer transition-opacity hover:opacity-90"
+                style={{ backgroundColor: '#6B1C1C' }}
+              >
+                Delete
+              </button>
             ) : (
-              <div className="space-y-3">
-                <div className="flex items-start gap-2.5 bg-red-50 rounded-xl px-4 py-3 border border-red-100">
-                  <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                  </svg>
-                  <p className="text-xs text-red-600 leading-relaxed">
-                    This will permanently delete <strong>{store.name}</strong> and all its data. This cannot be undone.
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="destructive" className="flex-1" onClick={handleDeleteStore}>
-                    Confirm delete
-                  </Button>
-                  <Button variant="ghost" className="flex-1" onClick={() => setDeleteConfirming(false)}>
-                    Cancel
-                  </Button>
-                </div>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={handleDeleteStore}
+                  className="px-4 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer"
+                  style={{ backgroundColor: '#DC2626' }}
+                >
+                  Confirm
+                </button>
+                <button
+                  onClick={() => setDeleteConfirming(false)}
+                  className="px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer"
+                  style={{ border: '1px solid #E5E7EB', color: '#6B7280' }}
+                >
+                  Cancel
+                </button>
               </div>
             )}
-            {deleteError && <p className="text-xs text-red-500 mt-2">{deleteError}</p>}
           </div>
         </div>
       </main>

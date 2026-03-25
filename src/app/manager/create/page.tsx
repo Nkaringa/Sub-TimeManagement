@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Input } from '@/components/ui/input'
 
 export default function CreateEmployeePage() {
   const [employeeId, setEmployeeId] = useState('')
@@ -56,159 +55,188 @@ export default function CreateEmployeePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100">
-      {/* Header */}
-      <header
-        className="bg-white h-16 px-6 flex items-center justify-between shrink-0"
-        style={{ boxShadow: '0 1px 0 #E2E8F0' }}
-      >
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <circle cx="12" cy="12" r="9" />
-              <path strokeLinecap="round" d="M12 7v5l3 3" />
-            </svg>
-          </div>
-          <span className="font-[family-name:var(--font-playfair)] text-xl font-bold text-slate-900 italic">
-            Shiftly
-          </span>
-        </div>
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#fefae0' }}>
+      {/* Top bar */}
+      <div className="px-8 pt-6 flex items-center justify-between shrink-0">
+        <span className="text-sm font-black tracking-widest uppercase" style={{ color: '#6B1C1C', letterSpacing: '0.15em' }}>
+          SHIFTLY
+        </span>
         <Link
           href="/manager/dashboard"
-          className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-sm font-semibold transition-opacity hover:opacity-80 cursor-pointer"
+          style={{ color: '#374151', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', border: '1px solid #E5E7EB' }}
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
           </svg>
           Back
         </Link>
-      </header>
+      </div>
 
-      <div className="flex-1 flex items-start justify-center px-4 py-10">
-        <div className="w-full max-w-sm animate-fade-up">
-          {/* Heading */}
-          <div className="mb-7">
-            <h1 className="font-[family-name:var(--font-playfair)] text-2xl font-bold text-slate-900 italic mb-2">
-              Add employee
-            </h1>
-            <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3.5 py-2.5">
-              <svg className="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-              </svg>
-              <p className="text-xs text-blue-700 font-medium">
-                Default PIN is <span className="font-[family-name:var(--font-jetbrains)] font-bold">1234</span> — employee will set a new one on first login.
-              </p>
-            </div>
+      <div className="flex-1 flex flex-col items-center px-4 py-8">
+        {/* Title */}
+        <div className="text-center mb-6 w-full max-w-md">
+          <h1 className="text-4xl font-black mb-2" style={{ color: '#6B1C1C' }}>
+            Add New Employee
+          </h1>
+          <p className="text-sm" style={{ color: '#9CA3AF' }}>
+            Create a new profile for your workforce management.
+          </p>
+        </div>
+
+        {/* Info box */}
+        <div
+          className="w-full max-w-md flex items-start gap-3 px-4 py-3.5 rounded-xl mb-5"
+          style={{ backgroundColor: 'rgba(107,28,28,0.05)', border: '1px solid rgba(107,28,28,0.1)' }}
+        >
+          <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: '#6B1C1C' }}>
+            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+            </svg>
           </div>
+          <p className="text-xs leading-relaxed" style={{ color: '#6B1C1C' }}>
+            Default PIN is <strong>1234</strong> — employee will set a new one on first login.
+          </p>
+        </div>
 
-          {/* Form card */}
-          <div
-            className="bg-white rounded-2xl p-6"
-            style={{ boxShadow: '0 4px 24px rgba(15,23,42,0.07), 0 1px 4px rgba(15,23,42,0.04)' }}
-          >
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-1.5">
-                <label htmlFor="employeeId" className="block text-[11px] font-bold text-slate-500 tracking-widest uppercase">
-                  Employee ID <span className="text-slate-300 font-normal normal-case tracking-normal">required</span>
-                </label>
-                <Input
-                  id="employeeId"
-                  value={employeeId}
-                  onChange={e => setEmployeeId(e.target.value)}
-                  required
-                  placeholder="e.g. EMP001"
-                  className="font-[family-name:var(--font-jetbrains)]"
-                />
-              </div>
+        {/* Form card */}
+        <div className="w-full max-w-md bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 16px rgba(107,28,28,0.08)' }}>
+          <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            {/* Employee ID */}
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold tracking-widest uppercase" style={{ color: '#6B7280' }}>
+                EMPLOYEE ID <span style={{ color: '#6B1C1C' }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={employeeId}
+                onChange={e => setEmployeeId(e.target.value)}
+                required
+                placeholder="e.g. EMP001"
+                className="w-full px-4 py-3 rounded-xl text-sm outline-none placeholder-stone-400"
+                style={{ backgroundColor: '#F0F0F0', border: 'none', color: '#1F2937' }}
+              />
+            </div>
 
-              <div className="space-y-1.5">
-                <label htmlFor="name" className="block text-[11px] font-bold text-slate-500 tracking-widest uppercase">
-                  Full name <span className="text-slate-300 font-normal normal-case tracking-normal">required</span>
-                </label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  required
-                  placeholder="e.g. Jane Smith"
-                />
-              </div>
+            {/* Full Name */}
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold tracking-widest uppercase" style={{ color: '#6B7280' }}>
+                FULL NAME <span style={{ color: '#6B1C1C' }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                required
+                placeholder="e.g. Jane Smith"
+                className="w-full px-4 py-3 rounded-xl text-sm outline-none placeholder-stone-400"
+                style={{ backgroundColor: '#F0F0F0', border: 'none', color: '#1F2937' }}
+              />
+            </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label htmlFor="phone" className="block text-[11px] font-bold text-slate-500 tracking-widest uppercase">
-                    Phone
-                  </label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={phone}
-                    onChange={e => setPhone(e.target.value)}
-                    placeholder="Optional"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label htmlFor="email" className="block text-[11px] font-bold text-slate-500 tracking-widest uppercase">
-                    Email
-                  </label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="Optional"
-                  />
-                </div>
-              </div>
+            {/* Phone */}
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold tracking-widest uppercase" style={{ color: '#6B7280' }}>
+                PHONE
+              </label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                placeholder="Optional"
+                className="w-full px-4 py-3 rounded-xl text-sm outline-none placeholder-stone-400"
+                style={{ backgroundColor: '#F0F0F0', border: 'none', color: '#1F2937' }}
+              />
+            </div>
 
-              <div className="space-y-1.5">
-                <label htmlFor="role" className="block text-[11px] font-bold text-slate-500 tracking-widest uppercase">
-                  Role
-                </label>
+            {/* Email */}
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold tracking-widest uppercase" style={{ color: '#6B7280' }}>
+                EMAIL
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="Optional"
+                className="w-full px-4 py-3 rounded-xl text-sm outline-none placeholder-stone-400"
+                style={{ backgroundColor: '#F0F0F0', border: 'none', color: '#1F2937' }}
+              />
+            </div>
+
+            {/* Role */}
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold tracking-widest uppercase" style={{ color: '#6B7280' }}>
+                ROLE
+              </label>
+              <div className="relative">
                 <select
-                  id="role"
                   value={role}
                   onChange={e => setRole(e.target.value)}
-                  className="flex h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:border-blue-400 cursor-pointer"
+                  className="w-full appearance-none px-4 py-3 rounded-xl text-sm outline-none cursor-pointer"
+                  style={{ backgroundColor: '#F0F0F0', border: 'none', color: '#1F2937' }}
                 >
                   <option value="EMPLOYEE">Employee</option>
                   <option value="MANAGER" disabled={managersFull}>
                     Manager{managersFull ? ' (limit reached)' : ''}
                   </option>
                 </select>
-                {managersFull && (
-                  <p className="text-xs text-amber-600 mt-1">This store already has 2 managers.</p>
-                )}
+                <svg
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  style={{ color: '#6B7280' }}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
               </div>
-
-              {error && (
-                <div className="flex items-start gap-2.5 text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3 border border-red-100">
-                  <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-                  </svg>
-                  {error}
-                </div>
+              {managersFull && (
+                <p className="text-xs mt-1" style={{ color: '#D97706' }}>This store already has 2 managers.</p>
               )}
+            </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full h-12 rounded-xl bg-slate-900 text-white font-bold text-[15px] transition-all duration-150 hover:bg-slate-800 active:scale-[0.99] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
-                style={{ boxShadow: '0 4px 16px rgba(15,23,42,0.15)' }}
+            {/* Error */}
+            {error && (
+              <div
+                className="text-sm text-center font-medium px-4 py-3 rounded-xl"
+                style={{ backgroundColor: '#FEF2F2', color: '#DC2626', border: '1px solid #FEE2E2' }}
               >
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Creating…
-                  </span>
-                ) : (
-                  'Create employee'
-                )}
-              </button>
-            </form>
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 rounded-xl font-bold text-base text-white transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-2"
+              style={{ backgroundColor: '#6B1C1C', boxShadow: '0 4px 16px rgba(107,28,28,0.3)' }}
+            >
+              {loading ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Creating…
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
+                  </svg>
+                  Create employee
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Card footer */}
+          <div className="px-6 py-3 text-center" style={{ backgroundColor: '#F9F9F9', borderTop: '1px solid #F0F0F0' }}>
+            <p className="text-[10px] font-bold tracking-[0.2em] uppercase" style={{ color: '#9CA3AF' }}>
+              NEW HIRE ONBOARDING SYSTEM
+            </p>
           </div>
         </div>
       </div>

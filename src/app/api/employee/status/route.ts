@@ -12,8 +12,13 @@ export async function GET() {
     where: { userId: session.userId, clockOut: null },
   })
 
+  const store = session.storeId
+    ? await prisma.store.findUnique({ where: { id: session.storeId }, select: { name: true, storeNumber: true } })
+    : null
+
   return NextResponse.json({
     clockedIn: !!openPunch,
     clockInTime: openPunch?.clockIn ?? null,
+    storeName: store ? `${store.name} #${store.storeNumber}` : null,
   })
 }
