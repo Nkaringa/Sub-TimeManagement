@@ -81,7 +81,7 @@ export default function ChangePinPage() {
 
   if (!me) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+      <div className="min-h-screen flex items-center justify-center bg-[#F0F2F8]">
         <div className="flex items-center gap-2.5 text-sm text-slate-500">
           <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -96,11 +96,11 @@ export default function ChangePinPage() {
   const isManager = me.role === 'MANAGER'
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-[#F0F2F8] flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm animate-fade-up">
         {/* Brand */}
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center mx-auto mb-4">
+          <div className="w-14 h-14 rounded-2xl bg-[#1C3060] flex items-center justify-center mx-auto mb-4">
             <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <circle cx="12" cy="12" r="9" />
               <path strokeLinecap="round" d="M12 7v5l3 3" />
@@ -122,7 +122,7 @@ export default function ChangePinPage() {
         {/* Form card */}
         <div
           className="bg-white rounded-2xl p-6"
-          style={{ boxShadow: '0 4px 32px rgba(15,23,42,0.08), 0 1px 4px rgba(15,23,42,0.04)' }}
+          style={{ boxShadow: '0 4px 32px rgba(28,48,96,0.08), 0 1px 4px rgba(28,48,96,0.04)' }}
         >
           <form onSubmit={handleSubmit} className="space-y-4">
             {isManager && (
@@ -230,8 +230,8 @@ export default function ChangePinPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-12 rounded-xl bg-slate-900 text-white font-bold text-[15px] transition-all duration-150 hover:bg-slate-800 active:scale-[0.99] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
-              style={{ boxShadow: '0 4px 16px rgba(15,23,42,0.15)' }}
+              className="w-full h-12 rounded-xl bg-[#1C3060] text-white font-bold text-[15px] transition-all duration-150 hover:bg-[#162650] active:scale-[0.99] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+              style={{ boxShadow: '0 4px 16px rgba(28,48,96,0.15)' }}
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">

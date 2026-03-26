@@ -30,16 +30,35 @@ function getInitials(name: string) {
     .toUpperCase()
 }
 
-function formatLastPunch(isoTime: string | null, isActive: boolean): { primary: string; secondary: string; isToday: boolean } | null {
+function formatLastPunch(isoTime: string | null, isActive: boolean, timezone: string): { primary: string; secondary: string; isToday: boolean } | null {
   if (!isoTime) return null
   const punch = new Date(isoTime)
   const now = new Date()
-  const todayStart = new Date(now)
-  todayStart.setHours(0, 0, 0, 0)
-  const yesterdayStart = new Date(todayStart)
-  yesterdayStart.setDate(yesterdayStart.getDate() - 1)
 
-  const timeStr = punch.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+  // Derive today's local midnight in UTC using the store's timezone
+  const nowParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+  }).formatToParts(now)
+  const yr = parseInt(nowParts.find(p => p.type === 'year')!.value)
+  const mo = parseInt(nowParts.find(p => p.type === 'month')!.value) - 1
+  const dy = parseInt(nowParts.find(p => p.type === 'day')!.value)
+  const lh = parseInt(nowParts.find(p => p.type === 'hour')!.value)
+  const lm = parseInt(nowParts.find(p => p.type === 'minute')!.value)
+  let offset = (lh * 60 + lm) - (now.getUTCHours() * 60 + now.getUTCMinutes())
+  if (offset > 720) offset -= 1440
+  if (offset < -720) offset += 1440
+  const m = String(mo + 1).padStart(2, '0')
+  const d = String(dy).padStart(2, '0')
+  const todayStart = new Date(Date.parse(`${yr}-${m}-${d}T00:00:00Z`) - offset * 60_000)
+  const yesterdayStart = new Date(todayStart.getTime() - 86_400_000)
+
+  const timeStr = punch.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: timezone })
 
   if (punch >= todayStart) {
     return { primary: timeStr, secondary: 'TODAY', isToday: true }
@@ -48,7 +67,7 @@ function formatLastPunch(isoTime: string | null, isActive: boolean): { primary: 
       ? { primary: timeStr, secondary: 'Yesterday', isToday: false }
       : { primary: 'Yesterday', secondary: timeStr, isToday: false }
   } else {
-    const dateLabel = punch.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const dateLabel = punch.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: timezone })
     return { primary: dateLabel, secondary: timeStr, isToday: false }
   }
 }
@@ -61,6 +80,7 @@ function getRoleDisplay(role: string): { title: string; dept: string } {
 export default function ManagerDashboardPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [stats, setStats] = useState<Stats>({ clockedIn: 0, absent: 0, totalHoursToday: 0 })
+  const [timezone, setTimezone] = useState<string>('UTC')
   const [filter, setFilter] = useState<FilterTab>('all')
   const [search, setSearch] = useState('')
   const [error, setError] = useState('')
@@ -72,6 +92,7 @@ export default function ManagerDashboardPage() {
         if (data.employees) {
           setEmployees(data.employees)
           setStats(data.stats)
+          if (data.timezone) setTimezone(data.timezone)
         } else {
           setError('Failed to load employees.')
         }
@@ -100,10 +121,10 @@ export default function ManagerDashboardPage() {
   }, [employees, filter, search])
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#fefae0' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#F0F2F8' }}>
       {/* Header */}
       <header className="px-8 h-16 flex items-center justify-between shrink-0">
-        <span className="text-xl font-black tracking-widest uppercase" style={{ color: '#6B1C1C', letterSpacing: '0.15em' }}>
+        <span className="text-xl font-black tracking-widest uppercase" style={{ color: '#1C3060', letterSpacing: '0.15em' }}>
           SHIFTLY
         </span>
 
@@ -111,7 +132,7 @@ export default function ManagerDashboardPage() {
           <nav className="flex items-center gap-8">
             <span
               className="text-sm font-semibold cursor-default pb-0.5"
-              style={{ color: '#6B1C1C', borderBottom: '2px solid #6B1C1C' }}
+              style={{ color: '#1C3060', borderBottom: '2px solid #1C3060' }}
             >
               Dashboard
             </span>
@@ -134,7 +155,7 @@ export default function ManagerDashboardPage() {
             <button
               onClick={handleSignOut}
               className="text-sm font-semibold px-5 py-2 rounded-xl border-2 transition-colors cursor-pointer"
-              style={{ borderColor: '#6B1C1C', color: '#6B1C1C' }}
+              style={{ borderColor: '#1C3060', color: '#1C3060' }}
             >
               Sign Out
             </button>
@@ -146,7 +167,7 @@ export default function ManagerDashboardPage() {
         {/* Title + Stats row */}
         <div className="flex items-start justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-black mb-1" style={{ color: '#6B1C1C' }}>
+            <h1 className="text-4xl font-black mb-1" style={{ color: '#1C3060' }}>
               Operations Dashboard
             </h1>
             <p className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -156,7 +177,7 @@ export default function ManagerDashboardPage() {
 
           <div className="flex items-stretch gap-4">
             {/* Live Workforce */}
-            <div className="rounded-2xl px-8 py-5" style={{ backgroundColor: '#6B1C1C', minWidth: '180px' }}>
+            <div className="rounded-2xl px-8 py-5" style={{ backgroundColor: '#1C3060', minWidth: '180px' }}>
               <p className="text-[10px] font-bold tracking-widest uppercase mb-3" style={{ color: 'rgba(255,255,255,0.55)' }}>
                 LIVE WORKFORCE
               </p>
@@ -167,18 +188,18 @@ export default function ManagerDashboardPage() {
             </div>
 
             {/* Availability */}
-            <div className="bg-white rounded-2xl px-8 py-5" style={{ minWidth: '160px', boxShadow: '0 1px 4px rgba(107,28,28,0.07)' }}>
+            <div className="bg-white rounded-2xl px-8 py-5" style={{ minWidth: '160px', boxShadow: '0 1px 4px rgba(28,48,96,0.07)' }}>
               <p className="text-[10px] font-bold tracking-widest uppercase mb-3" style={{ color: '#9CA3AF' }}>
                 AVAILABILITY
               </p>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-black leading-none" style={{ color: '#6B1C1C' }}>{stats.absent}</span>
+                <span className="text-5xl font-black leading-none" style={{ color: '#1C3060' }}>{stats.absent}</span>
                 <span className="text-base font-medium" style={{ color: '#9CA3AF' }}>Absent</span>
               </div>
             </div>
 
             {/* Total Hours Today */}
-            <div className="bg-white rounded-2xl px-8 py-5" style={{ minWidth: '200px', boxShadow: '0 1px 4px rgba(107,28,28,0.07)' }}>
+            <div className="bg-white rounded-2xl px-8 py-5" style={{ minWidth: '200px', boxShadow: '0 1px 4px rgba(28,48,96,0.07)' }}>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: '#F3F4F6' }}>
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ color: '#6B7280' }}>
@@ -201,7 +222,7 @@ export default function ManagerDashboardPage() {
         <div className="flex items-center justify-between mb-6">
           <div
             className="flex items-center gap-1 rounded-full p-1"
-            style={{ backgroundColor: 'rgba(107,28,28,0.08)' }}
+            style={{ backgroundColor: 'rgba(28,48,96,0.08)' }}
           >
             {(
               [
@@ -242,22 +263,22 @@ export default function ManagerDashboardPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-80 pl-11 pr-5 py-3 rounded-full text-sm outline-none bg-white placeholder-stone-400"
-              style={{ border: '1px solid rgba(107,28,28,0.08)', color: '#1F2937' }}
+              style={{ border: '1px solid rgba(28,48,96,0.08)', color: '#1F2937' }}
             />
           </div>
         </div>
 
         {/* Error */}
         {error && (
-          <div className="flex items-center gap-2 text-sm bg-white rounded-2xl px-5 py-3 mb-4" style={{ color: '#6B1C1C' }}>
+          <div className="flex items-center gap-2 text-sm bg-white rounded-2xl px-5 py-3 mb-4" style={{ color: '#1C3060' }}>
             {error}
           </div>
         )}
 
         {/* Employee Status table */}
-        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(107,28,28,0.07)' }}>
-          <div className="px-8 py-5" style={{ borderBottom: '1px solid #F5F0E8' }}>
-            <h2 className="text-lg font-bold" style={{ color: '#6B1C1C' }}>Employee Status</h2>
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(28,48,96,0.07)' }}>
+          <div className="px-8 py-5" style={{ borderBottom: '1px solid #E4E8F4' }}>
+            <h2 className="text-lg font-bold" style={{ color: '#1C3060' }}>Employee Status</h2>
           </div>
 
           {/* Column headers */}
@@ -266,7 +287,7 @@ export default function ManagerDashboardPage() {
             style={{
               display: 'grid',
               gridTemplateColumns: '2.5fr 1.2fr 1.8fr 1.4fr 1.2fr 1.4fr',
-              borderBottom: '1px solid #F5F0E8',
+              borderBottom: '1px solid #E4E8F4',
             }}
           >
             {['EMPLOYEE', 'STATUS', 'ROLE', 'LAST PUNCH', 'WEEKLY TOTAL', 'ACTIONS'].map(col => (
@@ -283,7 +304,7 @@ export default function ManagerDashboardPage() {
             </div>
           ) : (
             filtered.map((emp, idx) => {
-              const punch = formatLastPunch(emp.lastPunchTime, emp.clockedIn)
+              const punch = formatLastPunch(emp.lastPunchTime, emp.clockedIn, timezone)
               const roleDisplay = getRoleDisplay(emp.role)
               const initials = getInitials(emp.name)
               const isLast = idx === filtered.length - 1
@@ -295,7 +316,7 @@ export default function ManagerDashboardPage() {
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '2.5fr 1.2fr 1.8fr 1.4fr 1.2fr 1.4fr',
-                    borderBottom: isLast ? 'none' : '1px solid #FAF7F2',
+                    borderBottom: isLast ? 'none' : '1px solid #E4E8F4',
                   }}
                 >
                   {/* Employee */}
@@ -342,7 +363,7 @@ export default function ManagerDashboardPage() {
                       <>
                         <p
                           className="text-sm font-bold"
-                          style={{ color: emp.clockedIn && punch.isToday ? '#6B1C1C' : '#9CA3AF' }}
+                          style={{ color: emp.clockedIn && punch.isToday ? '#1C3060' : '#9CA3AF' }}
                         >
                           {punch.primary}
                         </p>
@@ -373,7 +394,7 @@ export default function ManagerDashboardPage() {
                     <Link
                       href={`/manager/employees/${emp.id}`}
                       className="text-xs font-bold tracking-wider uppercase transition-opacity hover:opacity-70 cursor-pointer"
-                      style={{ color: '#5B7EA6' }}
+                      style={{ color: '#4A6FA5' }}
                     >
                       FULL HISTORY →
                     </Link>

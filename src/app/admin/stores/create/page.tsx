@@ -34,10 +34,10 @@ export default function CreateStorePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#fefae0' }}>
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F0F2F8' }}>
       {/* Top bar */}
       <div className="px-8 pt-6 flex items-center justify-between shrink-0">
-        <span className="text-sm font-black tracking-widest uppercase" style={{ color: '#6B1C1C', letterSpacing: '0.15em' }}>
+        <span className="text-sm font-black tracking-widest uppercase" style={{ color: '#1C3060', letterSpacing: '0.15em' }}>
           SHIFTLY
         </span>
         <Link
@@ -55,7 +55,7 @@ export default function CreateStorePage() {
       <div className="flex-1 flex flex-col items-center px-4 py-8">
         {/* Title */}
         <div className="text-center mb-6 w-full max-w-md">
-          <h1 className="text-4xl font-black mb-2" style={{ color: '#6B1C1C' }}>
+          <h1 className="text-4xl font-black mb-2" style={{ color: '#1C3060' }}>
             Create store
           </h1>
           <p className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -64,12 +64,12 @@ export default function CreateStorePage() {
         </div>
 
         {/* Form card */}
-        <div className="w-full max-w-md bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 16px rgba(107,28,28,0.08)' }}>
+        <div className="w-full max-w-md bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 16px rgba(28,48,96,0.08)' }}>
           <form onSubmit={handleSubmit} className="p-6 space-y-5">
             {/* Store Number */}
             <div className="space-y-1.5">
               <label className="block text-[11px] font-bold tracking-widest uppercase" style={{ color: '#6B7280' }}>
-                STORE NUMBER <span style={{ color: '#6B1C1C' }}>*</span>
+                STORE NUMBER <span style={{ color: '#1C3060' }}>*</span>
               </label>
               <input
                 type="text"
@@ -85,7 +85,7 @@ export default function CreateStorePage() {
             {/* Store Name */}
             <div className="space-y-1.5">
               <label className="block text-[11px] font-bold tracking-widest uppercase" style={{ color: '#6B7280' }}>
-                STORE NAME <span style={{ color: '#6B1C1C' }}>*</span>
+                STORE NAME <span style={{ color: '#1C3060' }}>*</span>
               </label>
               <input
                 type="text"
@@ -101,7 +101,7 @@ export default function CreateStorePage() {
             {/* Timezone */}
             <div className="space-y-1.5">
               <label className="block text-[11px] font-bold tracking-widest uppercase" style={{ color: '#6B7280' }}>
-                TIMEZONE <span style={{ color: '#6B1C1C' }}>*</span>
+                TIMEZONE <span style={{ color: '#1C3060' }}>*</span>
               </label>
               <div className="relative">
                 <select
@@ -144,7 +144,7 @@ export default function CreateStorePage() {
               type="submit"
               disabled={loading}
               className="w-full py-3.5 rounded-xl font-bold text-base text-white transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-2"
-              style={{ backgroundColor: '#6B1C1C', boxShadow: '0 4px 16px rgba(107,28,28,0.3)' }}
+              style={{ backgroundColor: '#1C3060', boxShadow: '0 4px 16px rgba(28,48,96,0.3)' }}
             >
               {loading ? (
                 <>

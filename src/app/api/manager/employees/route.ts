@@ -10,30 +10,60 @@ export async function GET() {
   }
 
   const now = new Date()
+  const MAX_SHIFT_MS = 14.5 * 60 * 60 * 1000
 
-  // Start of current week (Monday 00:00:00)
-  const weekStart = new Date(now)
-  const day = weekStart.getDay()
-  weekStart.setDate(weekStart.getDate() - (day === 0 ? 6 : day - 1))
-  weekStart.setHours(0, 0, 0, 0)
-
-  // Start of today
-  const todayStart = new Date(now)
-  todayStart.setHours(0, 0, 0, 0)
-
-  const users = await prisma.user.findMany({
-    where: {
-      storeId: session.storeId,
-      role: { in: ['EMPLOYEE', 'MANAGER'] },
-    },
-    orderBy: { name: 'asc' },
-    include: {
-      punches: {
-        orderBy: { clockIn: 'desc' },
-        take: 100,
+  const [users, store] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        storeId: session.storeId,
+        role: { in: ['EMPLOYEE', 'MANAGER'] },
       },
-    },
-  })
+      orderBy: { name: 'asc' },
+      include: {
+        punches: {
+          orderBy: { clockIn: 'desc' },
+          take: 100,
+        },
+      },
+    }),
+    prisma.store.findFirst({ where: { id: session.storeId! } }),
+  ])
+
+  const timezone = store?.timezone ?? 'UTC'
+
+  // Get local date/time parts in the store's timezone
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+  }).formatToParts(now)
+
+  const yr = parseInt(parts.find(p => p.type === 'year')!.value)
+  const mo = parseInt(parts.find(p => p.type === 'month')!.value) - 1
+  const dy = parseInt(parts.find(p => p.type === 'day')!.value)
+  const localHour = parseInt(parts.find(p => p.type === 'hour')!.value)
+  const localMinute = parseInt(parts.find(p => p.type === 'minute')!.value)
+
+  const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes()
+  const localMinutes = localHour * 60 + localMinute
+  let offsetMinutes = localMinutes - utcMinutes
+  if (offsetMinutes > 720) offsetMinutes -= 1440
+  if (offsetMinutes < -720) offsetMinutes += 1440
+
+  function midnightUTC(year: number, month: number, day: number): Date {
+    const m = String(month + 1).padStart(2, '0')
+    const d = String(day).padStart(2, '0')
+    return new Date(Date.parse(`${year}-${m}-${d}T00:00:00Z`) - offsetMinutes * 60_000)
+  }
+
+  const todayStart = midnightUTC(yr, mo, dy)
+  const localDayOfWeek = new Date(Date.UTC(yr, mo, dy)).getDay()
+  const daysToMonday = localDayOfWeek === 0 ? 6 : localDayOfWeek - 1
+  const weekStart = new Date(todayStart.getTime() - daysToMonday * 86_400_000)
 
   let totalHoursToday = 0
 
@@ -54,7 +84,7 @@ export async function GET() {
     const weeklyHours = u.punches
       .filter(p => p.clockIn >= weekStart)
       .reduce((sum, p) => {
-        const end = p.clockOut ? p.clockOut.getTime() : now.getTime()
+        const end = p.clockOut ? p.clockOut.getTime() : Math.min(now.getTime(), p.clockIn.getTime() + MAX_SHIFT_MS)
         return sum + (end - p.clockIn.getTime()) / 3600000
       }, 0)
 
@@ -62,7 +92,7 @@ export async function GET() {
     const todayHours = u.punches
       .filter(p => p.clockIn >= todayStart)
       .reduce((sum, p) => {
-        const end = p.clockOut ? p.clockOut.getTime() : now.getTime()
+        const end = p.clockOut ? p.clockOut.getTime() : Math.min(now.getTime(), p.clockIn.getTime() + MAX_SHIFT_MS)
         return sum + (end - p.clockIn.getTime()) / 3600000
       }, 0)
     totalHoursToday += todayHours
@@ -87,6 +117,7 @@ export async function GET() {
       absent: employees.length - clockedInCount,
       totalHoursToday: Math.round(totalHoursToday * 10) / 10,
     },
+    timezone,
   })
 }
 

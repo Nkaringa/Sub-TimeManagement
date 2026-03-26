@@ -16,7 +16,7 @@ export async function GET(
 
   const user = await prisma.user.findFirst({
     where: { id, storeId: session.storeId },
-    include: { punches: { orderBy: { clockIn: 'asc' } } },
+    include: { punches: { orderBy: { clockIn: 'asc' } }, store: true },
   })
 
   if (!user) {
@@ -24,7 +24,7 @@ export async function GET(
   }
 
   const openPunch = user.punches.find(p => !p.clockOut)
-  const { weekly, biweekly, prevBiweekly, periodLabel, prevPeriodLabel } = calculateHours(user.punches)
+  const { weekly, biweekly, prevBiweekly, periodLabel, prevPeriodLabel } = calculateHours(user.punches, user.store?.timezone ?? 'UTC')
 
   const recentPunches = [...user.punches]
     .sort((a, b) => b.clockIn.getTime() - a.clockIn.getTime())
@@ -46,6 +46,7 @@ export async function GET(
     periodLabel,
     prevPeriodLabel,
     punches: recentPunches,
+    timezone: user.store?.timezone ?? 'UTC',
   })
 }
 
