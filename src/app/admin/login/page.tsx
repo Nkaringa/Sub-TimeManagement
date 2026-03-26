@@ -33,13 +33,13 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#fefae0' }}>
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F0F2F8' }}>
       {/* Back link */}
       <div className="px-8 pt-6 shrink-0 flex justify-end">
         <Link
           href="/login"
           className="inline-flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-70"
-          style={{ color: '#6B1C1C' }}
+          style={{ color: '#1C3060' }}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
@@ -52,13 +52,13 @@ export default function AdminLoginPage() {
       <div className="flex-1 flex flex-col items-center justify-center px-8 py-8">
         <div
           className="bg-white rounded-3xl p-8 w-full max-w-sm"
-          style={{ boxShadow: '0 4px 32px rgba(107,28,28,0.08), 0 1px 4px rgba(107,28,28,0.04)' }}
+          style={{ boxShadow: '0 4px 32px rgba(28,48,96,0.08), 0 1px 4px rgba(28,48,96,0.04)' }}
         >
           {/* Brand */}
           <div className="flex flex-col items-center mb-8">
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
-              style={{ backgroundColor: '#6B1C1C' }}
+              style={{ backgroundColor: '#1C3060' }}
             >
               <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -69,7 +69,7 @@ export default function AdminLoginPage() {
             </h1>
             <span
               className="px-4 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase"
-              style={{ backgroundColor: '#F9ECEC', color: '#6B1C1C', border: '1px solid rgba(107,28,28,0.12)' }}
+              style={{ backgroundColor: '#EEF1F8', color: '#1C3060', border: '1px solid rgba(28,48,96,0.12)' }}
             >
               ADMIN PORTAL
             </span>
@@ -147,7 +147,7 @@ export default function AdminLoginPage() {
               type="submit"
               disabled={loading}
               className="w-full py-4 rounded-xl font-bold text-base text-white transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-              style={{ backgroundColor: '#6B1C1C', boxShadow: '0 4px 16px rgba(107,28,28,0.3)' }}
+              style={{ backgroundColor: '#1C3060', boxShadow: '0 4px 16px rgba(28,48,96,0.3)' }}
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -164,7 +164,7 @@ export default function AdminLoginPage() {
           </form>
 
           {/* Disclaimer */}
-          <div className="mt-6 pt-6" style={{ borderTop: '1px solid #F0EAE0' }}>
+          <div className="mt-6 pt-6" style={{ borderTop: '1px solid #E4E8F4' }}>
             <p className="text-xs text-center leading-relaxed mb-3" style={{ color: '#9CA3AF' }}>
               This is a restricted workforce management portal. Unauthorized access attempts are logged and monitored.
             </p>

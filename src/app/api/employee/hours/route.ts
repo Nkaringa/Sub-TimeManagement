@@ -9,11 +9,12 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
   }
 
-  const punches = await prisma.timePunch.findMany({
-    where: { userId: session.userId },
-    orderBy: { clockIn: 'asc' },
-  })
+  const [punches, store] = await Promise.all([
+    prisma.timePunch.findMany({ where: { userId: session.userId }, orderBy: { clockIn: 'asc' } }),
+    prisma.store.findFirst({ where: { id: session.storeId! } }),
+  ])
 
-  const result = calculateHours(punches)
-  return NextResponse.json(result)
+  const timezone = store?.timezone ?? 'UTC'
+  const result = calculateHours(punches, timezone)
+  return NextResponse.json({ ...result, timezone })
 }

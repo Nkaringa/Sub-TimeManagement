@@ -55,10 +55,10 @@ export default function CreateEmployeePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#fefae0' }}>
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F0F2F8' }}>
       {/* Top bar */}
       <div className="px-8 pt-6 flex items-center justify-between shrink-0">
-        <span className="text-sm font-black tracking-widest uppercase" style={{ color: '#6B1C1C', letterSpacing: '0.15em' }}>
+        <span className="text-sm font-black tracking-widest uppercase" style={{ color: '#1C3060', letterSpacing: '0.15em' }}>
           SHIFTLY
         </span>
         <Link
@@ -76,7 +76,7 @@ export default function CreateEmployeePage() {
       <div className="flex-1 flex flex-col items-center px-4 py-8">
         {/* Title */}
         <div className="text-center mb-6 w-full max-w-md">
-          <h1 className="text-4xl font-black mb-2" style={{ color: '#6B1C1C' }}>
+          <h1 className="text-4xl font-black mb-2" style={{ color: '#1C3060' }}>
             Add New Employee
           </h1>
           <p className="text-sm" style={{ color: '#9CA3AF' }}>
@@ -87,25 +87,25 @@ export default function CreateEmployeePage() {
         {/* Info box */}
         <div
           className="w-full max-w-md flex items-start gap-3 px-4 py-3.5 rounded-xl mb-5"
-          style={{ backgroundColor: 'rgba(107,28,28,0.05)', border: '1px solid rgba(107,28,28,0.1)' }}
+          style={{ backgroundColor: 'rgba(28,48,96,0.05)', border: '1px solid rgba(28,48,96,0.1)' }}
         >
-          <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: '#6B1C1C' }}>
+          <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: '#1C3060' }}>
             <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
             </svg>
           </div>
-          <p className="text-xs leading-relaxed" style={{ color: '#6B1C1C' }}>
+          <p className="text-xs leading-relaxed" style={{ color: '#1C3060' }}>
             Default PIN is <strong>1234</strong> — employee will set a new one on first login.
           </p>
         </div>
 
         {/* Form card */}
-        <div className="w-full max-w-md bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 16px rgba(107,28,28,0.08)' }}>
+        <div className="w-full max-w-md bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 16px rgba(28,48,96,0.08)' }}>
           <form onSubmit={handleSubmit} className="p-6 space-y-5">
             {/* Employee ID */}
             <div className="space-y-1.5">
               <label className="block text-[11px] font-bold tracking-widest uppercase" style={{ color: '#6B7280' }}>
-                EMPLOYEE ID <span style={{ color: '#6B1C1C' }}>*</span>
+                EMPLOYEE ID <span style={{ color: '#1C3060' }}>*</span>
               </label>
               <input
                 type="text"
@@ -121,7 +121,7 @@ export default function CreateEmployeePage() {
             {/* Full Name */}
             <div className="space-y-1.5">
               <label className="block text-[11px] font-bold tracking-widest uppercase" style={{ color: '#6B7280' }}>
-                FULL NAME <span style={{ color: '#6B1C1C' }}>*</span>
+                FULL NAME <span style={{ color: '#1C3060' }}>*</span>
               </label>
               <input
                 type="text"
@@ -211,7 +211,7 @@ export default function CreateEmployeePage() {
               type="submit"
               disabled={loading}
               className="w-full py-3.5 rounded-xl font-bold text-base text-white transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-2"
-              style={{ backgroundColor: '#6B1C1C', boxShadow: '0 4px 16px rgba(107,28,28,0.3)' }}
+              style={{ backgroundColor: '#1C3060', boxShadow: '0 4px 16px rgba(28,48,96,0.3)' }}
             >
               {loading ? (
                 <>

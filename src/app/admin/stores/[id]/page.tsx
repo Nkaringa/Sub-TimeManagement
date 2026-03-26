@@ -24,7 +24,7 @@ function getInitials(name: string) {
   return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
 }
 
-const AVATAR_COLORS = ['#4F6BAD', '#5B8DB8', '#6B7A9F', '#7B6B9F', '#9F6B6B']
+const AVATAR_COLORS = ['#4F6BAD', '#4A6FA5', '#6B7A9F', '#7B6B9F', '#9F6B6B']
 function avatarColor(name: string) {
   let hash = 0
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
@@ -95,7 +95,7 @@ export default function AdminStoreDetailPage() {
 
   if (loadError) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#fefae0' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F0F2F8' }}>
         <div className="text-sm font-medium px-5 py-4 rounded-2xl bg-white" style={{ color: '#DC2626' }}>
           {loadError}
         </div>
@@ -105,8 +105,8 @@ export default function AdminStoreDetailPage() {
 
   if (!store) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#fefae0' }}>
-        <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" style={{ color: '#6B1C1C' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F0F2F8' }}>
+        <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" style={{ color: '#1C3060' }}>
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
@@ -117,16 +117,16 @@ export default function AdminStoreDetailPage() {
   const clockedInCount = store.employees.filter(e => e.clockedIn).length
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#fefae0' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#F0F2F8' }}>
       {/* Top bar */}
       <div className="px-8 pt-6 pb-6 flex items-center justify-between">
-        <span className="text-sm font-black tracking-widest uppercase" style={{ color: '#6B1C1C', letterSpacing: '0.15em' }}>
+        <span className="text-sm font-black tracking-widest uppercase" style={{ color: '#1C3060', letterSpacing: '0.15em' }}>
           SHIFTLY
         </span>
         <Link
           href="/admin/dashboard"
           className="inline-flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-70"
-          style={{ color: '#6B1C1C' }}
+          style={{ color: '#1C3060' }}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
@@ -140,7 +140,7 @@ export default function AdminStoreDetailPage() {
         {/* Top row: store info + stat cards */}
         <div className="flex gap-4">
           {/* Store identity */}
-          <div className="flex-1 bg-white rounded-2xl p-5 flex items-center justify-between" style={{ boxShadow: '0 1px 6px rgba(107,28,28,0.07)' }}>
+          <div className="flex-1 bg-white rounded-2xl p-5 flex items-center justify-between" style={{ boxShadow: '0 1px 6px rgba(28,48,96,0.07)' }}>
             {!editing ? (
               <>
                 <div>
@@ -152,7 +152,7 @@ export default function AdminStoreDetailPage() {
                 <button
                   onClick={() => setEditing(true)}
                   className="inline-flex items-center gap-1.5 text-sm font-semibold transition-opacity hover:opacity-70 cursor-pointer shrink-0"
-                  style={{ color: '#5B8DB8' }}
+                  style={{ color: '#4A6FA5' }}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
@@ -174,7 +174,7 @@ export default function AdminStoreDetailPage() {
                   <button
                     onClick={handleSaveName}
                     className="px-4 py-2 rounded-xl text-sm font-bold text-white cursor-pointer"
-                    style={{ backgroundColor: '#6B1C1C' }}
+                    style={{ backgroundColor: '#1C3060' }}
                   >
                     Save
                   </button>
@@ -192,7 +192,7 @@ export default function AdminStoreDetailPage() {
           </div>
 
           {/* Employees count */}
-          <div className="bg-white rounded-2xl px-8 py-5 flex flex-col justify-between" style={{ minWidth: '140px', boxShadow: '0 1px 6px rgba(107,28,28,0.07)' }}>
+          <div className="bg-white rounded-2xl px-8 py-5 flex flex-col justify-between" style={{ minWidth: '140px', boxShadow: '0 1px 6px rgba(28,48,96,0.07)' }}>
             <p className="text-[10px] font-bold tracking-widest uppercase mb-3" style={{ color: '#9CA3AF' }}>EMPLOYEES</p>
             <span className="text-5xl font-black" style={{ color: '#1F2937' }}>{store.employees.length}</span>
           </div>
@@ -203,7 +203,7 @@ export default function AdminStoreDetailPage() {
             style={{
               minWidth: '140px',
               backgroundColor: clockedInCount > 0 ? '#4CAF80' : '#F3F4F6',
-              boxShadow: '0 1px 6px rgba(107,28,28,0.07)',
+              boxShadow: '0 1px 6px rgba(28,48,96,0.07)',
             }}
           >
             <p className="text-[10px] font-bold tracking-widest uppercase mb-3" style={{ color: clockedInCount > 0 ? 'rgba(255,255,255,0.7)' : '#9CA3AF' }}>
@@ -216,8 +216,8 @@ export default function AdminStoreDetailPage() {
         </div>
 
         {/* Employees list */}
-        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(107,28,28,0.07)' }}>
-          <div className="px-6 py-4" style={{ borderBottom: '1px solid #F5F0E8' }}>
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(28,48,96,0.07)' }}>
+          <div className="px-6 py-4" style={{ borderBottom: '1px solid #E4E8F4' }}>
             <h3 className="text-sm font-black tracking-widest uppercase" style={{ color: '#1F2937' }}>EMPLOYEES</h3>
           </div>
 
@@ -230,7 +230,7 @@ export default function AdminStoreDetailPage() {
               <div
                 key={emp.id}
                 className="flex items-center gap-4 px-6 py-4"
-                style={{ borderBottom: idx < store.employees.length - 1 ? '1px solid #F5F0E8' : 'none' }}
+                style={{ borderBottom: idx < store.employees.length - 1 ? '1px solid #E4E8F4' : 'none' }}
               >
                 {/* Status dot */}
                 <div
@@ -255,7 +255,7 @@ export default function AdminStoreDetailPage() {
                 {/* Status pill */}
                 <span
                   className="px-4 py-1.5 rounded-full text-xs font-bold text-white shrink-0"
-                  style={{ backgroundColor: emp.clockedIn ? '#4CAF80' : '#6B1C1C' }}
+                  style={{ backgroundColor: emp.clockedIn ? '#4CAF80' : '#1C3060' }}
                 >
                   {emp.clockedIn ? 'IN' : 'OUT'}
                 </span>
@@ -281,12 +281,12 @@ export default function AdminStoreDetailPage() {
 
         {/* Danger zone */}
         <div>
-          <p className="text-center text-sm font-black tracking-widest uppercase py-3" style={{ color: '#6B1C1C' }}>
+          <p className="text-center text-sm font-black tracking-widest uppercase py-3" style={{ color: '#1C3060' }}>
             DANGER ZONE
           </p>
-          <div className="bg-white rounded-2xl p-6 flex items-center justify-between gap-6" style={{ boxShadow: '0 1px 6px rgba(107,28,28,0.07)' }}>
+          <div className="bg-white rounded-2xl p-6 flex items-center justify-between gap-6" style={{ boxShadow: '0 1px 6px rgba(28,48,96,0.07)' }}>
             <div>
-              <p className="text-base font-bold mb-1" style={{ color: '#6B1C1C' }}>Delete this store</p>
+              <p className="text-base font-bold mb-1" style={{ color: '#1C3060' }}>Delete this store</p>
               <p className="text-sm leading-relaxed" style={{ color: '#6B7280' }}>
                 Once you delete a store, there is no going back. All employee data and history for {store.name} will be permanently removed.
               </p>
@@ -296,7 +296,7 @@ export default function AdminStoreDetailPage() {
               <button
                 onClick={() => setDeleteConfirming(true)}
                 className="shrink-0 px-6 py-3 rounded-2xl text-sm font-bold text-white cursor-pointer transition-opacity hover:opacity-90"
-                style={{ backgroundColor: '#6B1C1C' }}
+                style={{ backgroundColor: '#1C3060' }}
               >
                 Delete
               </button>
